@@ -11,7 +11,6 @@ import { Landtype } from "@/types/landstype";
 import AvatarPic from "./avatar";
 import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Viewmorebutton from "../shared/Viewmorebutton";
 
 export function LandCard({ lands }: { lands: Landtype[] }) {
   if (!lands || lands.length === 0) {
