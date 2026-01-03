@@ -2,7 +2,7 @@
 import { DashboardEssential } from "@/components/dashboard/essential"
 import { LandCard } from '@/components/dashboard/LandCard'
 import { Landtype } from "@/types/landstype"
-const lands: Landtype[] = [
+export const lands: Landtype[] = [
   {
     landtitle: "Land Title 1",
     landdescription: "This is a description for Land 1",
