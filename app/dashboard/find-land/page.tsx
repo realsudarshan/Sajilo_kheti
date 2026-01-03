@@ -10,7 +10,7 @@ export const lands: Landtype[] = [
     landownername: "owner 1",
     landphoto:
       "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200",
-    landownerphoto: "https://i.pravatar.cc/150?img=1",
+    landownerphoto: "https://i.pravatar.cc/150?img=1", 
     pricing: "price 1",
     purpose: "purpose 1",
     size: "size 1",
