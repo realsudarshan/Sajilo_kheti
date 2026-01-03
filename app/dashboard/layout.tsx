@@ -1,4 +1,5 @@
 import { DashboardHeader } from "@/components/dashboard/header"
+import { SiteFooter } from "@/components/landing/site-footer"
 
 export default function DashboardLayout({
     children,
@@ -10,6 +11,7 @@ export default function DashboardLayout({
             <DashboardHeader />
             <main className="flex-1 container mx-auto px-4 lg:px-6 py-8">
                 {children}
+                <SiteFooter/>
             </main>
         </div>
     )
