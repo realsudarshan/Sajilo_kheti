@@ -3,11 +3,17 @@
 import React, { useState } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { LandCard } from "@/components/dashboard/LandCard"
+import { MessageBox } from "@/components/dashboard/MessageBox"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import type { Landtype } from "@/types/landstype"
 import { lands as findLands } from "./find-land/page"
+import {
+  applicationSentMessage,
+  activeLeasersMessage,
+  pendingRequestMessage,
+} from "@/data/dashboardMessageBoxes"
 
 export default function Dashboard() {
   const [selectedLandApplication, setSelectedLandApplication] = useState<Landtype | null>(null)
@@ -44,7 +50,7 @@ export default function Dashboard() {
 
           <TabsContent value="applications" className="mt-6">
             <div>
-              <p className="text-sm text-gray-600 mb-4">Applications you have sent to land owners.</p>
+              <MessageBox messageBox={applicationSentMessage} />
               <div>
                 <LandCard lands={firstThree} />
               </div>
@@ -58,7 +64,7 @@ export default function Dashboard() {
 
           <TabsContent value="active" className="mt-6">
             <div>
-              <p className="text-sm text-gray-600 mb-4">Active leasers currently leasing lands.</p>
+              <MessageBox messageBox={activeLeasersMessage} />
               <div>
                 <LandCard lands={firstThree} />
               </div>
@@ -72,7 +78,7 @@ export default function Dashboard() {
 
           <TabsContent value="pending" className="mt-6">
             <div>
-              <p className="text-sm text-gray-600 mb-4">Requests pending approval.</p>
+              <MessageBox messageBox={pendingRequestMessage} />
               <div>
                 <LandCard lands={firstThree} />
               </div>
