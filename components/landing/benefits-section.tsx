@@ -39,24 +39,27 @@ export function BenefitsSection() {
                     </p>
                 </div>
 
-                <Tabs defaultValue="borrowers" className="w-full max-w-4xl mx-auto">
-                    <TabsList className="grid w-full grid-cols-3 bg-emerald-100/50 p-1 mb-12 rounded-full">
+                <Tabs defaultValue="borrowers" className="w-full max-w-4xl mx-auto flex flex-col items-center">
+                    <TabsList className="inline-flex h-auto bg-white border border-emerald-100 p-1.5 mb-12 rounded-full shadow-sm mx-auto">
                         <TabsTrigger
                             value="borrowers"
-                            className="rounded-full data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-600 font-medium py-3 transition-all"
+                            className="rounded-full px-6 py-3 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md text-gray-600 font-medium transition-all flex items-center gap-2"
                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M7 20h10" /><path d="M10 20c5.5-2.5.8-6.4 3-10" /><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" /><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z" /></svg>
                             For Land Borrowers
                         </TabsTrigger>
                         <TabsTrigger
                             value="landowners"
-                            className="rounded-full data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-600 font-medium py-3 transition-all"
+                            className="rounded-full px-6 py-3 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md text-gray-600 font-medium transition-all flex items-center gap-2"
                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 7V5c0-1.1.9-2 2-2h2" /><path d="M17 3h2c1.1 0 2 .9 2 2v2" /><path d="M21 17v2c0 1.1-.9 2-2 2h-2" /><path d="M7 21H5c-1.1 0-2-.9-2-2v-2" /><rect width="7" height="5" x="7" y="7" rx="1" /><rect width="7" height="5" x="10" y="12" rx="1" /></svg>
                             For Landowners
                         </TabsTrigger>
                         <TabsTrigger
                             value="community"
-                            className="rounded-full data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-600 font-medium py-3 transition-all"
+                            className="rounded-full px-6 py-3 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md text-gray-600 font-medium transition-all flex items-center gap-2"
                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                             For Communities
                         </TabsTrigger>
                     </TabsList>
