@@ -1,5 +1,6 @@
 "use client"
 
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
 import { Menu } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -21,8 +22,8 @@ export function SiteHeader() {
     return (
         <header
             className={`fixed top-0 z-50 w-full transition-all duration-300 ${isScrolled
-                    ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100"
-                    : "bg-transparent"
+                ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100"
+                : "bg-transparent"
                 }`}
         >
             <div className="container mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
@@ -46,9 +47,21 @@ export function SiteHeader() {
                     <Link href="#faq" className="text-sm font-medium hover:text-emerald-600 transition-colors">
                         FAQ
                     </Link>
-                    <Button variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6">
-                        Get Started
-                    </Button>
+                    <SignedOut>
+                        <SignInButton mode="modal">
+                            <Button variant="ghost" className="text-sm font-medium hover:text-emerald-600">
+                                Sign In
+                            </Button>
+                        </SignInButton>
+                        <SignUpButton mode="modal">
+                            <Button variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6">
+                                Get Started
+                            </Button>
+                        </SignUpButton>
+                    </SignedOut>
+                    <SignedIn>
+                        <UserButton afterSignOutUrl="/" />
+                    </SignedIn>
                 </nav>
 
                 {/* Mobile Nav */}
@@ -74,9 +87,24 @@ export function SiteHeader() {
                                 <Link href="#faq" className="text-lg font-medium hover:text-emerald-600">
                                     FAQ
                                 </Link>
-                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full">
-                                    Get Started
-                                </Button>
+                                <SignedOut>
+                                    <SignInButton mode="modal">
+                                        <Button variant="ghost" className="w-full text-lg font-medium hover:text-emerald-600">
+                                            Sign In
+                                        </Button>
+                                    </SignInButton>
+                                    <SignUpButton mode="modal">
+                                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full">
+                                            Get Started
+                                        </Button>
+                                    </SignUpButton>
+                                </SignedOut>
+                                <SignedIn>
+                                    <div className="flex items-center gap-2">
+                                        <UserButton afterSignOutUrl="/" />
+                                        <span className="font-medium">My Account</span>
+                                    </div>
+                                </SignedIn>
                             </div>
                         </SheetContent>
                     </Sheet>
