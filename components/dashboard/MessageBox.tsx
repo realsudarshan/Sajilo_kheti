@@ -5,6 +5,7 @@
 
 import { DashboardMessageBox } from "@/data/dashboardMessageBoxes"
 import { MapPin } from "lucide-react"
+import { Status } from "./Status"
 
 interface MessageBoxProps {
   messageBox: DashboardMessageBox
@@ -59,20 +60,7 @@ export function MessageBox({ messageBox }: MessageBoxProps) {
 
    
       {/* Status Badge */}
-      <div className="mt-4">
-        <span
-          className={`inline-block text-xs font-medium px-3 py-1 rounded-full ${
-            messageBox.status === "pending"
-              ? "bg-yellow-200 text-yellow-800"
-              : messageBox.status === "active"
-                ? "bg-green-200 text-green-800"
-                : "bg-blue-200 text-blue-800"
-          }`}
-        >
-          {messageBox.status.charAt(0).toUpperCase() +
-            messageBox.status.slice(1)}
-        </span>
-      </div>
+      <Status variant="cancel"/>
     </div>
   )
 }
