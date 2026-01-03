@@ -1,10 +1,10 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import { UserButton } from "@clerk/nextjs"
 import { Sprout } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
 
 const navigation = [
     { name: "Overview", href: "/dashboard" },
@@ -33,11 +33,10 @@ export function DashboardHeader() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`text-sm font-medium transition-colors ${
-                                    pathname === item.href
+                                className={`text-sm font-medium transition-colors ${pathname === item.href
                                         ? "text-emerald-600"
                                         : "text-gray-600 hover:text-gray-900"
-                                }`}
+                                    }`}
                             >
                                 {item.name}
                             </Link>

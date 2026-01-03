@@ -6,7 +6,7 @@ import Link from "next/link"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
 export function SiteHeader() {
     const [isScrolled, setIsScrolled] = React.useState(false)
@@ -74,19 +74,28 @@ export function SiteHeader() {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="right">
-                            <div className="flex flex-col gap-6 mt-10">
-                                <Link href="#how-it-works" className="text-lg font-medium hover:text-emerald-600">
-                                    How it Works
-                                </Link>
-                                <Link href="#benefits" className="text-lg font-medium hover:text-emerald-600">
-                                    Benefits
-                                </Link>
-                                <Link href="#stories" className="text-lg font-medium hover:text-emerald-600">
-                                    Stories
-                                </Link>
-                                <Link href="#faq" className="text-lg font-medium hover:text-emerald-600">
-                                    FAQ
-                                </Link>
+                            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                            <div className="flex flex-col items-center gap-6 mt-10 text-center">
+                                <SheetClose asChild>
+                                    <Link href="#how-it-works" className="text-lg font-medium hover:text-emerald-600">
+                                        How it Works
+                                    </Link>
+                                </SheetClose>
+                                <SheetClose asChild>
+                                    <Link href="#benefits" className="text-lg font-medium hover:text-emerald-600">
+                                        Benefits
+                                    </Link>
+                                </SheetClose>
+                                <SheetClose asChild>
+                                    <Link href="#stories" className="text-lg font-medium hover:text-emerald-600">
+                                        Stories
+                                    </Link>
+                                </SheetClose>
+                                <SheetClose asChild>
+                                    <Link href="#faq" className="text-lg font-medium hover:text-emerald-600">
+                                        FAQ
+                                    </Link>
+                                </SheetClose>
                                 <SignedOut>
                                     <SignInButton mode="modal">
                                         <Button variant="ghost" className="w-full text-lg font-medium hover:text-emerald-600">
