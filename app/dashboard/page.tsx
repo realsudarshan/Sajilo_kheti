@@ -44,7 +44,7 @@ export default function Dashboard() {
         <Tabs defaultValue="applications" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="applications">Application Sent</TabsTrigger>
-            <TabsTrigger value="active">Active Leasers</TabsTrigger>
+            <TabsTrigger value="active">Active Leases</TabsTrigger>
             <TabsTrigger value="pending">Pending Request</TabsTrigger>
           </TabsList>
 

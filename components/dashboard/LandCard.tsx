@@ -8,7 +8,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Landtype } from "@/types/landstype";
-import AvatarPic from "./avatar";
+import AvatarPic from "./AvatarPic";
 import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

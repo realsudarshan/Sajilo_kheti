@@ -1,5 +1,5 @@
 
-import { DashboardEssential } from "@/components/dashboard/essential"
+import { DashboardEssential } from "@/components/dashboard/DashboardEssential"
 import { LandCard } from '@/components/dashboard/LandCard'
 import { Landtype } from "@/types/landstype"
 export const lands: Landtype[] = [
