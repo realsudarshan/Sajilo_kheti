@@ -1,12 +1,12 @@
-import { BenefitsSection } from "@/components/landing/benefits-section"
-import { ELearningPreview } from "@/components/landing/e-learning-section"
-import { FAQSection } from "@/components/landing/faq-section"
-import { HeroSection } from "@/components/landing/hero-section"
-import { HowItWorks } from "@/components/landing/how-it-works"
-import { NewsletterSection } from "@/components/landing/newsletter-section"
-import { SiteFooter } from "@/components/landing/site-footer"
-import { SiteHeader } from "@/components/landing/site-header"
-import { SuccessStories } from "@/components/landing/success-stories"
+import { BenefitsSection } from "@/components/landing/BenefitsSection"
+import { ELearningPreview } from "@/components/landing/ELearningPreview"
+import { FAQSection } from "@/components/landing/FAQSection"
+import { HeroSection } from "@/components/landing/HeroSection"
+import { HowItWorks } from "@/components/landing/HowItWorks"
+import { NewsletterSection } from "@/components/landing/NewsletterSection"
+import { SiteFooter } from "@/components/landing/SiteFooter"
+import { SiteHeader } from "@/components/landing/SiteHeader"
+import { SuccessStories } from "@/components/landing/SuccessStories"
 
 export default function Home() {
   return (

@@ -1,18 +1,16 @@
-import Image from "next/image";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   CardDescription,
-  CardFooter,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
-import { Landtype } from "@/types/landstype";
-import AvatarPic from "./avatar";
+import { LandType } from "@/types/land.types";
 import { MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { AvatarPic } from "./AvatarPic";
 
-export function LandCard({ lands }: { lands: Landtype[] }) {
+export function LandCard({ lands }: { lands: LandType[] }) {
   if (!lands || lands.length === 0) {
     return (
       <p className="text-sm text-gray-500">No land listings available.</p>
@@ -46,8 +44,8 @@ export function LandCard({ lands }: { lands: Landtype[] }) {
             {/* Location */}
             <div className="pt-2 flex flex-wrap gap-2 text-xs">
               <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-muted">
-                 <MapPin className="h-4 w-4 text-emerald-600" aria-hidden />
-                 <span className="leading-none">{land.landlocation}</span>
+                <MapPin className="h-4 w-4 text-emerald-600" aria-hidden />
+                <span className="leading-none">{land.landlocation}</span>
               </span>
             </div>
           </CardHeader>
