@@ -5,12 +5,12 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
-import { Landtype } from "@/types/landstype";
+import { LandType } from "@/types/land.types";
 import { MapPin } from "lucide-react";
 import Image from "next/image";
 import { AvatarPic } from "./AvatarPic";
 
-export function LandCard({ lands }: { lands: Landtype[] }) {
+export function LandCard({ lands }: { lands: LandType[] }) {
   if (!lands || lands.length === 0) {
     return (
       <p className="text-sm text-gray-500">No land listings available.</p>

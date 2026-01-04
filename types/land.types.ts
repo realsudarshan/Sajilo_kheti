@@ -1,4 +1,4 @@
-export interface Landtype {
+export interface LandType {
   landtitle: string;
   landdescription: string;
   landlocation: string;
