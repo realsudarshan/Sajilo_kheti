@@ -15,3 +15,8 @@ export async function getLands() {
   const { data } = await api.get("/lands")
   return data
 }
+
+export async function getAgreements() {
+  const { data } = await api.get("/agreements")
+  return data
+}
