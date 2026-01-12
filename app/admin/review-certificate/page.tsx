@@ -141,10 +141,10 @@ function AgreementTable({
                   <TableCell>
                     <div>
                       <p className="font-medium">
-                        ${agreement.total_amount.toLocaleString()}
+                        Rs {agreement.total_amount.toLocaleString()}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Admin: ${agreement.amount_for_admin}
+                        Admin: Rs {agreement.amount_for_admin}
                       </p>
                     </div>
                   </TableCell>
