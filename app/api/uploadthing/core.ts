@@ -12,7 +12,7 @@ export const ourFileRouter = {
     image: {
 
       maxFileSize: "4MB",
-      maxFileCount: 1,
+      maxFileCount: 2,
 
     },
   })

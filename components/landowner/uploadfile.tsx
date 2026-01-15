@@ -21,7 +21,7 @@ interface FileUploadDemoProps {
 }
 
 export function FileUploadDemo({ files, onFilesChange }: FileUploadDemoProps) {
-  const [, setFiles] = React.useState<File[]>([])
+
  console.log(files)
   const onFileReject = React.useCallback((file: File, message: string) => {
     toast(message, {

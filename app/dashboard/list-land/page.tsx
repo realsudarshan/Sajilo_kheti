@@ -19,8 +19,10 @@ import { Input } from '@/components/ui/input'
 import { UploadButton } from '@/components/landowner/dropzone'
 import { FileUpload } from '@/components/ui/file-upload'
 import { FileUploadDemo } from '@/components/landowner/uploadfile'
+import { useUploadThing } from '@/lib/useUploadthings'
 
 export default function Listland() {
+    const { startUpload, isUploading } = useUploadThing("imageUploader");
   const [files, setFiles] = useState<File[]>([])
 console.log("Files in list-land",files)
   const form = useForm<z.infer<typeof landlistSchema>>({
@@ -35,9 +37,52 @@ console.log("Files in list-land",files)
     },
   })
 
-  function onSubmit(values: z.infer<typeof landlistSchema>) {
-    console.log('Form values:', values)
-    console.log('Uploaded files:', files)
+  async function onSubmit(values: z.infer<typeof landlistSchema>) {
+    // Add uploaded files to morelandpic
+    const completeValues = {
+      ...values,
+      morelandpic: files,
+    }
+    console.log('✅ onSubmit called!')
+    console.log('Complete values with files:', completeValues)
+    alert('Form submitted! Check console for details.')
+
+try {
+    // 2. Upload the files first
+    // 'files' comes from your state where you stored the File objects
+    let uploadedUrls: string[] = [];
+    
+    if (files && files.length > 0) {
+      const res = await startUpload(files);
+      
+      if (!res) {
+        alert("Error uploading images");
+        return;
+      }
+      
+      // Extract the URLs from the response
+      uploadedUrls = res.map((file) => file.url);
+    }
+
+    // 3. Construct the final data object for your database
+    const completeValues = {
+      ...values,
+      morelandpic: uploadedUrls, // Replace File objects with permanent URLs
+    };
+
+    console.log('Final data for Database:', completeValues);
+
+    // 4. Send to your Database (Server Action or API)
+    // await myServerAction(completeValues);
+
+    alert('Form and images submitted successfully!');
+    
+  } catch (error) {
+    console.error("Upload failed:", error);
+    alert("Something went wrong during submission.");
+  }
+
+
   }
 
   return (
@@ -118,6 +163,8 @@ console.log("Files in list-land",files)
                 />
               </div>
             </div> */}
+
+
             <FileUploadDemo files={files} onFilesChange={setFiles} />   
 
             {/* Description Field */}
