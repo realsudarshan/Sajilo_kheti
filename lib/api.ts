@@ -20,3 +20,8 @@ export async function getAgreements() {
   const { data } = await api.get("/agreements")
   return data
 }
+
+export async function getTransactions() {
+  const { data } = await api.get("/transections")
+  return data
+}
