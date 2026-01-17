@@ -18,9 +18,10 @@ import {
 interface FileUploadDemoProps {
   files: File[]
   onFilesChange: (files: File[]) => void
+  maxFiles?: number
 }
 
-export function FileUploadDemo({ files, onFilesChange }: FileUploadDemoProps) {
+export function FileUploadDemo({ files, onFilesChange, maxFiles = 2 }: FileUploadDemoProps) {
 
  console.log(files)
   const onFileReject = React.useCallback((file: File, message: string) => {
@@ -31,13 +32,13 @@ export function FileUploadDemo({ files, onFilesChange }: FileUploadDemoProps) {
  
   return (
     <FileUpload
-      maxFiles={2}
+      maxFiles={maxFiles}
       maxSize={5 * 1024 * 1024}
       className="w-full max-w-md"
       value={files}
       onValueChange={onFilesChange}
       onFileReject={onFileReject}
-      multiple
+      multiple={maxFiles > 1}
     >
       <FileUploadDropzone>
         <div className="flex flex-col items-center gap-1 text-center">
@@ -46,7 +47,7 @@ export function FileUploadDemo({ files, onFilesChange }: FileUploadDemoProps) {
           </div>
           <p className="font-medium text-sm">Drag & drop files here</p>
           <p className="text-muted-foreground text-xs">
-            Or click to browse (max 2 files, up to 5MB each)
+            Or click to browse (max {maxFiles} {maxFiles === 1 ? 'file' : 'files'}, up to 5MB each)
           </p>
         </div>
         <FileUploadTrigger asChild>
