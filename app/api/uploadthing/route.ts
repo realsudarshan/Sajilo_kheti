@@ -1,11 +1,13 @@
 import { createRouteHandler } from "uploadthing/next";
 
-import { manyImageRouter, singleImageRouter } from "./core";
+import { CitizenshipbackpicRouter, CitizenshipfrontpicRouter, manyImageRouter, singleImageRouter } from "./core";
 
 // Create a combined router that includes both endpoints
 const combinedRouter = {
   ...manyImageRouter,
   ...singleImageRouter,
+  ...CitizenshipfrontpicRouter,
+  ...CitizenshipbackpicRouter
 };
 
 // Export routes for Next App Router

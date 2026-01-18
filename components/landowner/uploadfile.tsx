@@ -23,7 +23,7 @@ interface FileUploadDemoProps {
 
 export function FileUploadDemo({ files, onFilesChange, maxFiles = 2 }: FileUploadDemoProps) {
 
- console.log(files)
+ 
   const onFileReject = React.useCallback((file: File, message: string) => {
     toast(message, {
       description: `"${file.name.length > 20 ? `${file.name.slice(0, 20)}...` : file.name}" has been rejected`,
