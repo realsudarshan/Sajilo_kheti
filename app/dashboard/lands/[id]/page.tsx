@@ -117,11 +117,7 @@ export default function LandDetailPage() {
                         <p className="text-xs text-slate-500">
                             The Lalpurja and ownership documents for this plot have been officially verified by our system.
                         </p>
-                        {land.lalpurjaUrl && (
-                            <Button variant="outline" className="w-full bg-white rounded-xl shadow-sm border-slate-200">
-                                View Lalpurja Document
-                            </Button>
-                        )}
+                     
                     </div>
 
                     <Button className="w-full h-16 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all">
@@ -129,6 +125,48 @@ export default function LandDetailPage() {
                     </Button>
                 </div>
             </main>
+        </div>
+    )
+}
+
+
+
+
+
+
+
+function SpecBox({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
+    return (
+        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100/50 flex flex-col gap-1">
+            <div className="p-2 bg-white rounded-lg w-fit shadow-sm mb-1">{icon}</div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{label}</span>
+            <span className="text-sm font-bold text-slate-800">{value}</span>
+        </div>
+    )
+}
+
+function LandDetailSkeleton() {
+    return (
+        <div className="max-w-7xl mx-auto p-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <Skeleton className="aspect-[4/3] rounded-3xl" />
+            <div className="space-y-6">
+                <Skeleton className="h-12 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-32 w-full rounded-3xl" />
+                <Skeleton className="h-16 w-full rounded-2xl" />
+            </div>
+        </div>
+    )
+}
+
+function ErrorState({ message }: { message: string }) {
+    return (
+        <div className="h-screen flex flex-col items-center justify-center text-center p-6">
+            <div className="bg-red-50 p-4 rounded-full mb-4">
+                <Landmark className="h-12 w-12 text-red-300" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900">Oops! Something went wrong</h2>
+            <p className="text-slate-500 mt-2">{message}</p>
         </div>
     )
 }
