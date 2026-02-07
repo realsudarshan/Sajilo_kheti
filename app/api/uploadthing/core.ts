@@ -5,8 +5,8 @@ const f = createUploadthing();
 
 const auth = (req: Request) => ({ id: "fakeId" }); // Fake auth function
 
-// FileRouter for uploading many images
-export const manyImageRouter = {
+export const ourFileRouter = {
+  // FileRouter for uploading many images
   imageUploader: f({
     image: {
       maxFileSize: "4MB",
@@ -20,15 +20,11 @@ export const manyImageRouter = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       console.log("Multiple images upload complete for userId:", metadata.userId);
-      console.log("File details:", file.type);
-      console.log("Date", new Date());
       console.log("file url", file.ufsUrl);
       return { uploadedBy: metadata.userId };
     }),
-} satisfies FileRouter;
 
-// FileRouter for uploading single image
-export const singleImageRouter = {
+  // FileRouter for uploading single image
   photoUploader: f({
     image: {
       maxFileSize: "8MB",
@@ -42,16 +38,12 @@ export const singleImageRouter = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       console.log("Single image upload complete for userId:", metadata.userId);
-      console.log("File details:", file.type);
-      console.log("Date", new Date());
       console.log("file url", file.ufsUrl);
       return { uploadedBy: metadata.userId };
     }),
-} satisfies FileRouter;
 
-
-export const CitizenshipfrontpicRouter = {
-  photoUploader: f({
+  // Renamed from CitizenshipfrontpicRouter to citizenship
+  citizenship: f({
     image: {
       maxFileSize: "8MB",
       maxFileCount: 1,
@@ -63,16 +55,13 @@ export const CitizenshipfrontpicRouter = {
       return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Single image upload complete for userId:", metadata.userId);
-      console.log("File details:", file.type);
-      console.log("Date", new Date());
+      console.log("Citizenship upload complete for userId:", metadata.userId);
       console.log("file url", file.ufsUrl);
       return { uploadedBy: metadata.userId };
     }),
-} satisfies FileRouter;
 
-export const CitizenshipbackpicRouter = {
-  photoUploader: f({
+  // Renamed from CitizenshipbackpicRouter to selfie
+  selfie: f({
     image: {
       maxFileSize: "8MB",
       maxFileCount: 1,
@@ -84,14 +73,10 @@ export const CitizenshipbackpicRouter = {
       return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Single image upload complete for userId:", metadata.userId);
-      console.log("File details:", file.type);
-      console.log("Date", new Date());
+      console.log("Selfie upload complete for userId:", metadata.userId);
       console.log("file url", file.ufsUrl);
       return { uploadedBy: metadata.userId };
     }),
 } satisfies FileRouter;
-export type CitizenshipfrontpicRouter = typeof CitizenshipfrontpicRouter;
-export type CitizenshipbackpicRouter = typeof CitizenshipbackpicRouter;
-export type ManyImageRouter = typeof manyImageRouter;
-export type SingleImageRouter = typeof singleImageRouter;
+
+export type OurFileRouter = typeof ourFileRouter;

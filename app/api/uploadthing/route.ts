@@ -1,16 +1,8 @@
 import { createRouteHandler } from "uploadthing/next";
-
-import { CitizenshipbackpicRouter, CitizenshipfrontpicRouter, manyImageRouter, singleImageRouter } from "./core";
-
-// Create a combined router that includes both endpoints
-const combinedRouter = {
-  ...manyImageRouter,
-  ...singleImageRouter,
-  ...CitizenshipfrontpicRouter,
-  ...CitizenshipbackpicRouter
-};
+import { ourFileRouter } from "./core";
 
 // Export routes for Next App Router
+// The router now contains imageUploader, photoUploader, citizenship, and selfie
 export const { GET, POST } = createRouteHandler({
-  router: combinedRouter as any,
+  router: ourFileRouter,
 });

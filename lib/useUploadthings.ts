@@ -1,7 +1,15 @@
-import { generateReactHelpers } from "@uploadthing/react";
-import type { CitizenshipbackpicRouter, CitizenshipfrontpicRouter, ManyImageRouter,SingleImageRouter, } from "@/app/api/uploadthing/core";
+import {
+  generateUploadButton,
+  generateUploadDropzone,
+  generateReactHelpers,
+} from "@uploadthing/react";
 
-export const {useUploadThing:useUploadLandMany, uploadFiles:useUploadLandManyFiles } = generateReactHelpers<ManyImageRouter>();
-export const {useUploadThing:useUploadLandHero, uploadFiles:useUploadLandHeroFiles } = generateReactHelpers<SingleImageRouter>();
-export const {useUploadThing:useCitizenshipfrontpic, uploadFiles:useUploadCitizenshipfrontpic } = generateReactHelpers<CitizenshipfrontpicRouter>();
-export const {useUploadThing:useCitizenshipbackpic, uploadFiles:useUploadCitizenshipbackpic } = generateReactHelpers<CitizenshipbackpicRouter>();
+// Import the type of your router from the core file
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
+
+// These components are now aware of "citizenship", "selfie", etc.
+export const UploadButton = generateUploadButton<OurFileRouter>();
+export const UploadDropzone = generateUploadDropzone<OurFileRouter>();
+
+// This is the hook you use in your forms
+export const { useUploadThing, uploadFiles } = generateReactHelpers<OurFileRouter>();
