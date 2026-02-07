@@ -1,5 +1,4 @@
 "use client"
-
 import { useLands } from "@/queryandmutation"
 import {
   Table,
@@ -11,19 +10,39 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { Land } from "@/types/land.types"
+
+// 1. Updated Type to match your API response exactly
+export type Land = {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  description: string;
+  status: "AVAILABLE" | "IN_NEGOTIATION" | "LEASED" | "HIDDEN";
+  ownerId: string;
+  title: string;
+  location: string;
+  lalpurjaUrl: string | null;
+  area: string | null;
+  sizeInSqFt: number;
+  pricePerMonth: number;
+  heroImageUrl: string;
+  galleryUrls: string[];
+}
 
 export default function LandsPage() {
   const { data: lands, isLoading, error } = useLands()
 
+  // 2. Updated to match ALL_CAPS status strings
   const getStatusVariant = (status: Land["status"]) => {
     switch (status) {
-      case "leased":
+      case "LEASED":
         return "default"
-      case "on marketplace":
+      case "AVAILABLE":
         return "secondary"
-      case "agreement pending":
+      case "IN_NEGOTIATION":
         return "outline"
+      case "HIDDEN":
+        return "destructive"
       default:
         return "destructive"
     }
@@ -43,40 +62,42 @@ export default function LandsPage() {
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
         </div>
       ) : error ? (
-        <div className="text-destructive">Failed to load lands: {error.message}</div>
+        <div className="text-destructive">Failed to load lands: {error instanceof Error ? error.message : 'Unknown error'}</div>
       ) : (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
+                <TableHead>Title</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Owner Name</TableHead>
+                <TableHead>Area/Size</TableHead>
+                <TableHead>Price/Month</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lands?.length > 0 ? (
+              {lands && lands.length > 0 ? (
                 lands.map((land: Land) => (
                   <TableRow key={land.id}>
-                    <TableCell className="font-medium">{land.id}</TableCell>
+                    <TableCell className="font-medium">{land.title}</TableCell>
                     <TableCell>{land.location}</TableCell>
-                    <TableCell>{land.size}</TableCell>
-                    <TableCell>{land.ownername}</TableCell>
+                    <TableCell>
+                      {/* Using sizeInSqFt or area from your provided schema */}
+                      {land.area || `${land.sizeInSqFt} Sq Ft`}
+                    </TableCell>
+                    <TableCell>Rs. {land.pricePerMonth.toLocaleString()}</TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(land.status)}>
-                        {land.status}
+                        {land.status.replace("_", " ")}
                       </Badge>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                     No lands found.
                   </TableCell>
                 </TableRow>

@@ -1,3 +1,4 @@
+
 import { LandType } from "@/types/land.types";
 
 /**

@@ -1,203 +1,115 @@
 'use client'
 
-import { Badge } from '@/components/ui/badge'
+import React, { useEffect, useState } from 'react'
+import { Search, X, Landmark } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSearchLands } from '@/queryandmutation'
-import { DollarSign, MapPin, Maximize2 } from 'lucide-react'
-import Link from 'next/link'
-import { useState } from 'react'
 
-export default function Lands() {
+// Import our new components
+import { DescriptiveSlider } from '@/components/lands/Descriptiveslider'
+import { LandCard } from '@/components/lands/LandCard'
+
+export default function LandsPage() {
     const [location, setLocation] = useState('')
-    const [minPrice, setMinPrice] = useState<number | undefined>()
-    const [maxPrice, setMaxPrice] = useState<number | undefined>()
-    const [minSize, setMinSize] = useState<number | undefined>()
-    const [maxSize, setMaxSize] = useState<number | undefined>()
+    const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
+    const [sizeRange, setSizeRange] = useState<[number, number]>([0, 20000])
 
-    const { data, isLoading, error, refetch } = useSearchLands({
-        location: location || undefined,
-        minPrice,
-        maxPrice,
-        minSize,
-        maxSize,
+    const [debouncedParams, setDebouncedParams] = useState({
+        location: '',
+        minPrice: 0,
+        maxPrice: 100000,
+        minSize: 0,
+        maxSize: 20000
     })
 
-    const handleFilter = () => {
-        refetch()
-    }
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedParams({
+                location,
+                minPrice: priceRange[0],
+                maxPrice: priceRange[1],
+                minSize: sizeRange[0],
+                maxSize: sizeRange[1]
+            })
+        }, 400)
+        return () => clearTimeout(timer)
+    }, [location, priceRange, sizeRange])
+
+    const { data, isLoading, error } = useSearchLands({
+        location: debouncedParams.location || undefined,
+        minPrice: debouncedParams.minPrice,
+        maxPrice: debouncedParams.maxPrice,
+        minSize: debouncedParams.minSize,
+        maxSize: debouncedParams.maxSize,
+    })
 
     const handleReset = () => {
         setLocation('')
-        setMinPrice(undefined)
-        setMaxPrice(undefined)
-        setMinSize(undefined)
-        setMaxSize(undefined)
+        setPriceRange([0, 100000])
+        setSizeRange([0, 20000])
     }
 
     return (
-        <div className="flex flex-col gap-6 py-6 px-4 lg:px-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Available Lands</h1>
-                <p className="text-muted-foreground">Browse and filter available lands for lease</p>
-            </div>
+        <div className="min-h-screen bg-slate-50/50 pb-20">
+            <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 space-y-10">
+                <header className="space-y-2 text-center md:text-left">
+                    <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+                        Explore <span className="text-primary">Lands</span>
+                    </h1>
+                    <p className="text-slate-500 text-lg">Find premium plots with 10k increment precision.</p>
+                </header>
 
-            {/* Filters */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Filters</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Location Filter */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Location</label>
-                            <Input
-                                placeholder="e.g., Kathmandu"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                            />
-                        </div>
-
-                        {/* Price Range */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Min Price (NPR/month)</label>
-                            <Input
-                                type="number"
-                                placeholder="Min price"
-                                value={minPrice || ''}
-                                onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : undefined)}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Max Price (NPR/month)</label>
-                            <Input
-                                type="number"
-                                placeholder="Max price"
-                                value={maxPrice || ''}
-                                onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : undefined)}
-                            />
-                        </div>
-
-                        {/* Size Range */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Min Size (sq ft)</label>
-                            <Input
-                                type="number"
-                                placeholder="Min size"
-                                value={minSize || ''}
-                                onChange={(e) => setMinSize(e.target.value ? Number(e.target.value) : undefined)}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Max Size (sq ft)</label>
-                            <Input
-                                type="number"
-                                placeholder="Max size"
-                                value={maxSize || ''}
-                                onChange={(e) => setMaxSize(e.target.value ? Number(e.target.value) : undefined)}
-                            />
-                        </div>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex gap-2">
-                    <Button onClick={handleFilter}>Apply Filters</Button>
-                    <Button variant="outline" onClick={handleReset}>Reset</Button>
-                </CardFooter>
-            </Card>
-
-            {/* Results */}
-            {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[...Array(6)].map((_, i) => (
-                        <Card key={i}>
-                            <Skeleton className="h-48 w-full rounded-t-lg" />
-                            <CardHeader>
-                                <Skeleton className="h-6 w-3/4" />
-                                <Skeleton className="h-4 w-1/2" />
-                            </CardHeader>
-                            <CardContent>
-                                <Skeleton className="h-4 w-full mb-2" />
-                                <Skeleton className="h-4 w-2/3" />
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            ) : error ? (
-                <div className="text-center py-12">
-                    <p className="text-destructive">Error loading lands: {error.message}</p>
-                </div>
-            ) : data?.lands && data.lands.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {data.lands.map((land) => (
-                        <Card key={land.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                            {/* Land Image */}
-                            <div className="relative h-48 bg-muted">
-                                {land.heroImageUrl ? (
-                                    <img
-                                        src={land.heroImageUrl}
-                                        alt={land.title}
-                                        className="w-full h-full object-cover"
+                <Card className="shadow-2xl shadow-slate-200 border-none bg-white rounded-3xl overflow-hidden sticky top-6 z-40">
+                    <CardContent className="p-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                            <div className="lg:col-span-4 space-y-3">
+                                <Label className="text-[11px] uppercase font-bold text-slate-400 tracking-widest flex items-center gap-2">Search Region</Label>
+                                <div className="relative">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                    <Input 
+                                        placeholder="City or district..." 
+                                        className="pl-12 h-14 bg-slate-50 border-none rounded-2xl text-base shadow-inner focus-visible:ring-primary"
+                                        value={location}
+                                        onChange={(e) => setLocation(e.target.value)}
                                     />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <Maximize2 className="h-12 w-12 text-muted-foreground" />
-                                    </div>
-                                )}
-                                <Badge className="absolute top-2 right-2" variant={
-                                    land.status === 'AVAILABLE' ? 'default' :
-                                        land.status === 'LEASED' ? 'destructive' : 'secondary'
-                                }>
-                                    {land.status}
-                                </Badge>
+                                </div>
                             </div>
 
-                            <CardHeader>
-                                <CardTitle className="line-clamp-1">{land.title}</CardTitle>
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                    <MapPin className="h-4 w-4" />
-                                    <span className="line-clamp-1">{land.location}</span>
-                                </div>
-                            </CardHeader>
+                            <div className="lg:col-span-3">
+                                <DescriptiveSlider label="Rent Per Month" min={0} max={100000} step={10000} unit="NPR" value={priceRange} onValueChange={setPriceRange} />
+                            </div>
 
-                            <CardContent className="space-y-2">
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {land.description}
-                                </p>
+                            <div className="lg:col-span-3">
+                                <DescriptiveSlider label="Land Area" min={0} max={20000} step={1000} unit="SQFT" value={sizeRange} onValueChange={setSizeRange} />
+                            </div>
 
-                                <div className="flex items-center justify-between pt-2">
-                                    <div className="flex items-center gap-1">
-                                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                        <span className="font-semibold">NPR {land.pricePerMonth.toLocaleString()}/mo</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Maximize2 className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm">{land.sizeInSqFt.toLocaleString()} sq ft</span>
-                                    </div>
-                                </div>
-                            </CardContent>
+                            <div className="lg:col-span-2 flex items-end">
+                                <Button variant="outline" onClick={handleReset} className="w-full h-14 rounded-2xl border-dashed border-slate-300 gap-2 hover:bg-red-50 hover:text-red-600 transition-colors">
+                                    <X className="h-4 w-4" /> Reset
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                            <CardFooter>
-                                <Link href={`/dashboard/lands/${land.id}`} className="w-full">
-                                    <Button className="w-full">View Details</Button>
-                                </Link>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                <div className="space-y-8">
+                    <h2 className="text-2xl font-bold text-slate-800">{isLoading ? "Syncing..." : `Found ${data?.lands?.length || 0} Listings`}</h2>
+                    
+                    {isLoading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {[...Array(6)].map((_, i) => <Skeleton key={i} className="aspect-[16/10] w-full rounded-3xl" />)}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {data?.lands?.map((land: any) => <LandCard key={land.id} land={land} />)}
+                        </div>
+                    )}
                 </div>
-            ) : (
-                <div className="text-center py-12">
-                    <p className="text-muted-foreground">No lands found matching your criteria.</p>
-                    <Button variant="outline" onClick={handleReset} className="mt-4">
-                        Clear Filters
-                    </Button>
-                </div>
-            )}
+            </div>
         </div>
     )
 }

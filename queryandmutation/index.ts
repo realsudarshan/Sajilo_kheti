@@ -22,6 +22,14 @@ export const useSearchLands = (filters: {
     maxSize?: number;
 }) => trpc.land.search.useQuery(filters);
 
+export const useLands = () => {
+    const query = trpc.land.search.useQuery({});
+    return {
+        ...query,
+        data: query.data?.lands
+    };
+};
+
 export const useGetLandById = (landId: string) => {
     return trpc.land.getById.useQuery({ landId }, {
         enabled: !!landId // Only run if landId exists

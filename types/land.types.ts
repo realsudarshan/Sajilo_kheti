@@ -11,10 +11,18 @@ export interface LandType {
 }
 type LandStatus = "leased" | "on marketplace" | "none" | "agreement pending";
 
-export interface Land {
-  id: number;
+// @/types/land.types.ts
+export type Land = {
+  id: string;
+  title: string;          // Error says this exists
   location: string;
-  size: string;
-  ownername: string;
-  status: LandStatus;
-}
+  status: "AVAILABLE" | "IN_NEGOTIATION" | "LEASED" | "HIDDEN";
+  description: string;
+  ownerId: string;
+  galleryUrls: string[];
+  lalpurjaUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // If 'size' and 'ownername' aren't in the error list, 
+  // they might be named differently (e.g., 'area' or 'owner.name')
+};
