@@ -1,7 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -10,77 +17,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useGetAllKycDetails, useUpdateKycStatus } from "@/queryandmutation"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
 
-interface LandownerApplication {
-  ownerid: string
-  ownername: string
-  application: {
-    "front-page-url": string
-    "back-page-url": string
-  }
-  status: "accepted" | "rejected" | "pending"
+type KycStatus = "PENDING" | "APPROVED" | "REJECTED"
+
+interface KycDetail {
+  id: string
+  userId: string
+  status: string
+  citizenshipNumber: string
+  documentUrl: string
+  selfieUrl: string | null
+  userName: string
+  userEmail: string
 }
 
-// Mock data - replace with actual API call
-const mockLandowners: LandownerApplication[] = [
-  {
-    ownerid: "USR-101",
-    ownername: "Alice Vance",
-    application: {
-      "front-page-url": "https://i.ibb.co/sample1/front.jpg",
-      "back-page-url": "https://i.ibb.co/sample1/back.jpg",
-    },
-    status: "accepted",
-  },
-  {
-    ownerid: "USR-102",
-    ownername: "Bob Smith",
-    application: {
-      "front-page-url": "https://i.ibb.co/sample2/front.jpg",
-      "back-page-url": "https://i.ibb.co/sample2/back.jpg",
-    },
-    status: "rejected",
-  },
-  {
-    ownerid: "USR-103",
-    ownername: "Charlie Brown",
-    application: {
-      "front-page-url": "https://i.ibb.co/sample3/front.jpg",
-      "back-page-url": "https://i.ibb.co/sample3/back.jpg",
-    },
-    status: "pending",
-  },
-  {
-    ownerid: "USR-104",
-    ownername: "Diana Ross",
-    application: {
-      "front-page-url": "https://i.ibb.co/sample4/front.jpg",
-      "back-page-url": "https://i.ibb.co/sample4/back.jpg",
-    },
-    status: "pending",
-  },
-]
-
-const statusColors = {
-  accepted: "bg-green-500/10 text-green-500",
-  rejected: "bg-red-500/10 text-red-500",
-  pending: "bg-yellow-500/10 text-yellow-500",
-}
-
-function LandownerTable({
-  landowners,
+function KycTable({
+  kycDetails,
   showActions = false,
+  onStatusUpdate,
 }: {
-  landowners: LandownerApplication[]
+  kycDetails: KycDetail[]
   showActions?: boolean
+  onStatusUpdate?: () => void
 }) {
   const [imageDialog, setImageDialog] = useState<{
     open: boolean
@@ -88,8 +50,20 @@ function LandownerTable({
     title: string
   }>({ open: false, url: "", title: "" })
 
+  const updateKycStatus = useUpdateKycStatus()
+
   const openImage = (url: string, title: string) => {
     setImageDialog({ open: true, url, title })
+  }
+
+  const handleStatusUpdate = async (userId: string, status: KycStatus) => {
+    try {
+      await updateKycStatus.mutateAsync({ userId, status })
+      toast.success(`KYC ${status.toLowerCase()} successfully`)
+      onStatusUpdate?.()
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update KYC status")
+    }
   }
 
   return (
@@ -116,21 +90,26 @@ function LandownerTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Owner ID</TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead>User</TableHead>
+              <TableHead>Citizenship No.</TableHead>
               <TableHead>Documents</TableHead>
               <TableHead>Status</TableHead>
               {showActions && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {landowners.length > 0 ? (
-              landowners.map((landowner) => (
-                <TableRow key={landowner.ownerid}>
-                  <TableCell className="font-medium">
-                    {landowner.ownerid}
+            {kycDetails.length > 0 ? (
+              kycDetails.map((kyc) => (
+                <TableRow key={kyc.id}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{kyc.userName}</p>
+                      <p className="text-sm text-muted-foreground">{kyc.userEmail}</p>
+                    </div>
                   </TableCell>
-                  <TableCell>{landowner.ownername}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {kyc.citizenshipNumber}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
@@ -138,41 +117,58 @@ function LandownerTable({
                         variant="outline"
                         onClick={() =>
                           openImage(
-                            landowner.application["front-page-url"],
-                            `${landowner.ownername} - Front Page`
+                            kyc.documentUrl,
+                            `${kyc.userName} - Citizenship Document`
                           )
                         }
                       >
-                        Show Front
+                        Document
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          openImage(
-                            landowner.application["back-page-url"],
-                            `${landowner.ownername} - Back Page`
-                          )
-                        }
-                      >
-                        Show Back
-                      </Button>
+                      {kyc.selfieUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            openImage(
+                              kyc.selfieUrl!,
+                              `${kyc.userName} - Selfie`
+                            )
+                          }
+                        >
+                          Selfie
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge
-                      className={statusColors[landowner.status]}
-                      variant="secondary"
+                      variant={
+                        kyc.status === "APPROVED"
+                          ? "default"
+                          : kyc.status === "REJECTED"
+                            ? "destructive"
+                            : "secondary"
+                      }
                     >
-                      {landowner.status.charAt(0).toUpperCase() +
-                        landowner.status.slice(1)}
+                      {kyc.status}
                     </Badge>
                   </TableCell>
                   {showActions && (
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button size="sm">Accept</Button>
-                        <Button size="sm" variant="destructive">
+                        <Button
+                          size="sm"
+                          onClick={() => handleStatusUpdate(kyc.userId, "APPROVED")}
+                          disabled={updateKycStatus.isPending}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleStatusUpdate(kyc.userId, "REJECTED")}
+                          disabled={updateKycStatus.isPending}
+                        >
                           Reject
                         </Button>
                       </div>
@@ -186,7 +182,7 @@ function LandownerTable({
                   colSpan={showActions ? 5 : 4}
                   className="text-center text-muted-foreground"
                 >
-                  No landowners found.
+                  No applications found.
                 </TableCell>
               </TableRow>
             )}
@@ -198,46 +194,75 @@ function LandownerTable({
 }
 
 export default function ReviewLandownerPage() {
-  const acceptedLandowners = mockLandowners.filter(
-    (l) => l.status === "accepted"
-  )
-  const rejectedLandowners = mockLandowners.filter(
-    (l) => l.status === "rejected"
-  )
-  const pendingLandowners = mockLandowners.filter((l) => l.status === "pending")
+  const { data, isLoading, error, refetch } = useGetAllKycDetails()
+
+  const kycDetails = data?.kycDetails || []
+
+  // Client-side filtering
+  const { pending, approved, rejected } = useMemo(() => {
+    return {
+      pending: kycDetails.filter((k) => k.status === "PENDING"),
+      approved: kycDetails.filter((k) => k.status === "APPROVED"),
+      rejected: kycDetails.filter((k) => k.status === "REJECTED"),
+    }
+  }, [kycDetails])
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
+        <div className="text-destructive">Error: {error.message}</div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Review Landowner</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Review KYC Applications</h1>
         <p className="text-muted-foreground">
-          Review and verify landowner applications and profiles.
+          Review and verify landowner KYC applications.
         </p>
       </div>
 
       <Tabs defaultValue="pending" className="w-full">
         <TabsList>
-          <TabsTrigger value="accepted">
-            Accepted ({acceptedLandowners.length})
+          <TabsTrigger value="pending">
+            Pending ({pending.length})
+          </TabsTrigger>
+          <TabsTrigger value="approved">
+            Approved ({approved.length})
           </TabsTrigger>
           <TabsTrigger value="rejected">
-            Rejected ({rejectedLandowners.length})
-          </TabsTrigger>
-          <TabsTrigger value="pending">
-            Pending ({pendingLandowners.length})
+            Rejected ({rejected.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="accepted" className="mt-4">
-          <LandownerTable landowners={acceptedLandowners} />
+        <TabsContent value="pending" className="mt-4">
+          <KycTable kycDetails={pending} showActions onStatusUpdate={() => refetch()} />
+        </TabsContent>
+
+        <TabsContent value="approved" className="mt-4">
+          <KycTable kycDetails={approved} />
         </TabsContent>
 
         <TabsContent value="rejected" className="mt-4">
-          <LandownerTable landowners={rejectedLandowners} />
-        </TabsContent>
-
-        <TabsContent value="pending" className="mt-4">
-          <LandownerTable landowners={pendingLandowners} showActions />
+          <KycTable kycDetails={rejected} />
         </TabsContent>
       </Tabs>
     </div>

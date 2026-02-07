@@ -8,21 +8,19 @@ export const useCreateUser = () => trpc.user.createUser.useMutation();
 export const useUpgradeRequest = () => trpc.user.upgradeRequest.useMutation();
 export const useUpdateKycStatus = () => trpc.user.updateKycStatus.useMutation();
 export const useGetKycDetails = () => trpc.user.getKycDetails.useQuery();
+export const useGetAllKycDetails = () => trpc.user.getAllKycDetails.useQuery();
 
 // ============================================================================
 // LAND HOOKS
 // ============================================================================
 export const usePublishLand = () => trpc.land.publish.useMutation();
-
 export const useSearchLands = (filters: {
     location?: string;
     minPrice?: number;
     maxPrice?: number;
     minSize?: number;
     maxSize?: number;
-}) => {
-    return trpc.land.search.useQuery(filters);
-};
+}) => trpc.land.search.useQuery(filters);
 
 export const useGetLandById = (landId: string) => {
     return trpc.land.getById.useQuery({ landId }, {
