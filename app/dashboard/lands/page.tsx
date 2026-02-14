@@ -16,14 +16,14 @@ import { LandCard } from '@/components/lands/LandCard'
 export default function LandsPage() {
     const [location, setLocation] = useState('')
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
-    const [sizeRange, setSizeRange] = useState<[number, number]>([0, 20000])
+    const [sizeRange, setSizeRange] = useState<[number, number]>([0, 100000])
 
     const [debouncedParams, setDebouncedParams] = useState({
         location: '',
         minPrice: 0,
         maxPrice: 100000,
         minSize: 0,
-        maxSize: 20000
+        maxSize: 100000
     })
 
     useEffect(() => {
@@ -50,7 +50,7 @@ export default function LandsPage() {
     const handleReset = () => {
         setLocation('')
         setPriceRange([0, 100000])
-        setSizeRange([0, 20000])
+        setSizeRange([0, 100000])
     }
 
     return (
@@ -84,7 +84,7 @@ export default function LandsPage() {
                             </div>
 
                             <div className="lg:col-span-3">
-                                <DescriptiveSlider label="Land Area" min={0} max={20000} step={1000} unit="SQFT" value={sizeRange} onValueChange={setSizeRange} />
+                                <DescriptiveSlider label="Land Area" min={0} max={100000} step={1000} unit="SQFT" value={sizeRange} onValueChange={setSizeRange} />
                             </div>
 
                             <div className="lg:col-span-2 flex items-end">
