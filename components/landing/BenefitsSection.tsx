@@ -66,14 +66,14 @@ export function BenefitsSection() {
 
                     <TabsContent value="borrowers" className="mt-0 focus-visible:ring-0">
                         <BenefitCard
-                            image="https://images.unsplash.com/photo-1592419044706-39796d40f98c?q=80&w=1200&auto=format&fit=crop"
+                            image="/land_borrowers.png"
                             title="Start Your Farming Journey"
                             items={benefits.borrowers}
                         />
                     </TabsContent>
                     <TabsContent value="landowners" className="mt-0 focus-visible:ring-0">
                         <BenefitCard
-                            image="https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1200&auto=format&fit=crop"
+                            image="/land_owner.png"
                             title="Make Your Land Productive"
                             items={benefits.landowners}
                         />
@@ -96,12 +96,8 @@ function BenefitCard({ image, title, items }: { image: string, title: string, it
         <Card className="border-none shadow-xl bg-white overflow-hidden rounded-3xl">
             <CardContent className="p-0 grid grid-cols-1 md:grid-cols-2">
                 <div className="relative h-64 md:h-auto overflow-hidden">
-                    {/* Fallback pattern if image fails or just a nice colored block */}
-                    <div className="absolute inset-0 bg-emerald-100" />
-                    {/* Using a placeholder SVG pattern or similar to keep it self-contained if needed, but the prompt implies we can make it look good. I'll stick to a nice pattern div if I was strictly offline, but Unsplash is often allowed. Given I can't check 'images.unsplash.com' from here easily, I will use a safe colorful div with text overlay for now to ensure it renders without broken images.*/}
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center p-8">
-                        <h3 className="text-3xl font-bold text-white/20 rotate-12">{title}</h3>
-                    </div>
+                    <img src={image} alt={title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/10" />
                 </div>
                 <div className="p-8 md:p-12 flex flex-col justify-center">
                     <h3 className="text-2xl font-bold text-gray-900 mb-8">{title}</h3>
