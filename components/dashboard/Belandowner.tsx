@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Landmark, ArrowUpRight, Activity } from "lucide-react"
+import { Landmark, ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 
@@ -9,11 +9,11 @@ export default function LandownerActionButtons() {
   const router = useRouter()
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4 p-8 bg-slate-50/50 rounded-3xl">
+    <div className="flex items-center justify-center p-8 bg-slate-50/50 rounded-3xl">
       
       {/* --- BECOME LANDOWNER (Green & Shiny) --- */}
       <Button 
-        onClick={() => router.push("/dashboard/verify-landowner")}
+        onClick={() => router.push("/verify-landowner")}
         size="sm"
         className="
           group relative h-12 overflow-hidden rounded-xl 
@@ -41,26 +41,6 @@ export default function LandownerActionButtons() {
           absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent
           translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out
         " />
-      </Button>
-
-      {/* --- VIEW STATUS (Simple & Clean) --- */}
-      <Button 
-        onClick={() => router.push("/dashboard/kyc-status")} // Adjust this path as needed
-        variant="outline"
-        size="sm"
-        className="
-          group h-12 px-6 rounded-xl border-slate-200 bg-white
-          text-slate-600 shadow-sm transition-all duration-300
-          hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300
-          active:scale-[0.98]
-        "
-      >
-        <div className="flex items-center gap-3">
-          <Activity size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
-          <span className="text-sm font-semibold tracking-tight">
-            View KYC Status
-          </span>
-        </div>
       </Button>
 
     </div>

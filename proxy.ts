@@ -1,29 +1,21 @@
-// proxy.ts
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from "next/server";
-const isAdminRoute = createRouteMatcher(['/admin(.*)']);
 
-const isDashboardRoute = createRouteMatcher(['/dashboard(.*)'])
+// Define which routes need authentication
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/landowner-dashboard(.*)',
+  '/admin(.*)',
+]);
 
 export default clerkMiddleware(async (auth, req) => {
-    if (isAdminRoute(req)) {
-    const { sessionClaims } = await auth();
-
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (role !== 'admin') {
-      const url = new URL('/dashboard', req.url);
-      return NextResponse.redirect(url);
-    }
-  }
-    if (isDashboardRoute(req)) await auth.protect()
-})
+  // If the user hits a protected route, Clerk will redirect them to sign-in
+  if (isProtectedRoute(req)) await auth.protect();
+});
 
 export const config = {
-    matcher: [
-        // Skip Next.js internals and all static files, unless found in search params
-        '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-        // Always run for API routes
-        '/(api|trpc)(.*)',
-    ],
-}
+  matcher: [
+    // Standard Clerk matcher to catch all relevant requests
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
+};

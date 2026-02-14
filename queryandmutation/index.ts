@@ -9,6 +9,7 @@ export const useUpgradeRequest = () => trpc.user.upgradeRequest.useMutation();
 export const useUpdateKycStatus = () => trpc.user.updateKycStatus.useMutation();
 export const useGetKycDetails = () => trpc.user.getKycDetails.useQuery();
 export const useGetAllKycDetails = () => trpc.user.getAllKycDetails.useQuery();
+export const useGetMe = () => trpc.user.getMe.useQuery();
 
 // ============================================================================
 // LAND HOOKS

@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
 
 // --- MOCK DATA ---
 const MOCK_LEASES = [
@@ -49,7 +50,10 @@ export default function LeaserDashboard() {
   const [activeLand, setActiveLand] = useState(MOCK_LEASES[0])
 
   return (
+    <>
+    
     <div className="min-h-screen bg-[#F9FAFB] text-slate-900 p-6 md:p-10">
+       
       <div className="max-w-7xl mx-auto space-y-10">
         
         {/* --- TOP NAVIGATION / HEADER --- */}
@@ -169,6 +173,7 @@ export default function LeaserDashboard() {
         </Tabs>
       </div>
     </div>
+    </>
   )
 }
 

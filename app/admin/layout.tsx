@@ -4,7 +4,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-
+import { RoleGate } from "@/components/auth/RoleGate";
 export default function AdminLayout({
   children,
 }: {
@@ -24,7 +24,9 @@ export default function AdminLayout({
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
+          <RoleGate>
             {children}
+            </RoleGate>
           </div>
         </div>
       </SidebarInset>

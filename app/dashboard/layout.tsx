@@ -1,18 +1,18 @@
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { RoleGate } from "@/components/auth/RoleGate"
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
-import { SiteFooter } from "@/components/landing/SiteFooter"
 
-export default function DashboardLayout({
-    children,
-}: {
-    children: React.ReactNode
-}) {
-    return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            <DashboardHeader />
-            <main className="flex-1 container mx-auto px-4 lg:px-6 py-8">
-                {children}
-                <SiteFooter />
-            </main>
+export default function LandownerLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RoleGate>
+      {/* SidebarProvider must wrap anything that uses useSidebar() */}
+      <SidebarProvider defaultOpen={false}> 
+        
+        <div className="flex flex-col min-h-screen w-full">
+            <DashboardHeader/>
+          {children}
         </div>
-    )
+      </SidebarProvider>
+    </RoleGate>
+  )
 }

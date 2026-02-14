@@ -9,8 +9,8 @@ import LandownerShadcnButton from "./Belandowner"
 
 const navigation = [
     { name: "Overview", href: "/dashboard" },
-    { name: "Find Land", href: "/dashboard/find-land" },
-    { name: "My Farm", href: "/dashboard/my-listings" },
+    { name: "Find Land", href: "/dashboard/lands" },
+    { name: "My Farm", href: "/dashboard/my-lands" },
 ]
 
 export function DashboardHeader() {
