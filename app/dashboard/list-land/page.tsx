@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import z from 'zod'
+import { toast } from 'sonner'
+import { z } from 'zod'
 
 import { FileUploadDemo } from '@/components/landowner/uploadfile'
 import { Button } from '@/components/ui/button'
@@ -27,11 +28,19 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useUploadThing } from '@/lib/useUploadthings'
-import { landlistSchema } from '@/lib/zodschema/schema'
+import { LandSizeSchema } from '@/lib/zodschema/schema'
 import { usePublishLand } from '@/queryandmutation'
-import { toast } from 'sonner'
 
-type LandFormData = z.infer<typeof landlistSchema>
+// Define schema inline
+const formSchema = z.object({
+  title: z.string().min(5, "Title is too short").max(100),
+  location: z.string().min(1, "Location is required"),
+  size: LandSizeSchema,
+  price: z.number().positive("Price must be greater than 0"),
+  description: z.string().min(10, "Please provide a more detailed description"),
+})
+
+type FormData = z.infer<typeof formSchema>
 
 export default function Listland() {
   const { user } = useUser()
@@ -43,25 +52,53 @@ export default function Listland() {
   const [files, setFiles] = useState<File[]>([])
   const [heroFile, setHeroFile] = useState<File | null>(null)
   const [lalpurjaFile, setLalpurjaFile] = useState<File | null>(null)
+  const [measurementSystem, setMeasurementSystem] = useState<'HILLY' | 'TERAI' | 'FLAT'>('HILLY')
 
-  const form = useForm<LandFormData>({
-    resolver: zodResolver(landlistSchema),
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       location: '',
       size: {
-        size: 1,
-        unit: 'ROPANI' as const,
+        system: 'HILLY',
+        ropani: 0,
+        aana: 0,
+        paisa: 0,
+        daam: 0,
       },
       price: 0,
       description: '',
-      landpic: '',
-      morelandpic: [],
-      lalpurjaUrl: '',
     },
   })
 
-  async function onSubmit(values: LandFormData) {
+  const handleSystemChange = (newSystem: 'HILLY' | 'TERAI' | 'FLAT') => {
+    setMeasurementSystem(newSystem)
+
+    if (newSystem === 'HILLY') {
+      form.setValue('size', {
+        system: 'HILLY',
+        ropani: 0,
+        aana: 0,
+        paisa: 0,
+        daam: 0,
+      })
+    } else if (newSystem === 'TERAI') {
+      form.setValue('size', {
+        system: 'TERAI',
+        bigha: 0,
+        kattha: 0,
+        dhur: 0,
+      })
+    } else {
+      form.setValue('size', {
+        system: 'FLAT',
+        value: 0,
+        unit: 'SQ_FT',
+      })
+    }
+  }
+
+  const onSubmit = async (values: FormData) => {
     if (!user?.id) {
       toast.error('You must be logged in to list land')
       return
@@ -73,7 +110,6 @@ export default function Listland() {
     }
 
     try {
-      // Upload hero image
       const heroRes = await startUploadHero([heroFile])
       if (!heroRes) {
         toast.error('Failed to upload hero image')
@@ -81,7 +117,6 @@ export default function Listland() {
       }
       const heroImageUrl = heroRes[0].url
 
-      // Upload gallery images
       let galleryUrls: string[] = []
       if (files && files.length > 0) {
         const res = await startUpload(files)
@@ -92,8 +127,7 @@ export default function Listland() {
         galleryUrls = res.map((file: any) => file.url)
       }
 
-      // Upload lalpurja document
-      let lalpurjaUrl: string | undefined
+      let lalpurjaUrl: string | null = null
       if (lalpurjaFile) {
         const lalpurjaRes = await startUploadHero([lalpurjaFile])
         if (lalpurjaRes) {
@@ -101,7 +135,6 @@ export default function Listland() {
         }
       }
 
-      // Publish land
       await publishLand.mutateAsync({
         ownerId: user.id,
         title: values.title,
@@ -111,13 +144,13 @@ export default function Listland() {
         description: values.description,
         landpic: heroImageUrl,
         morelandpic: galleryUrls,
-        lalpurjaUrl: lalpurjaUrl,
+        lalpurjaUrl: lalpurjaUrl||undefined,
       })
 
       toast.success('Land listed successfully!')
       router.push('/dashboard')
     } catch (error: any) {
-      console.error('❌ Upload failed:', error)
+      console.error('Upload failed:', error)
       toast.error(error.message || 'Failed to list land')
     }
   }
@@ -130,7 +163,7 @@ export default function Listland() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Title Field */}
+
               <FormField
                 control={form.control}
                 name="title"
@@ -145,7 +178,6 @@ export default function Listland() {
                 )}
               />
 
-              {/* Location Field */}
               <FormField
                 control={form.control}
                 name="location"
@@ -160,58 +192,209 @@ export default function Listland() {
                 )}
               />
 
-              {/* Size Fields */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="size.size"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Size</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter size"
-                          type="number"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="size.unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select unit" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="ROPANI">Ropani</SelectItem>
-                          <SelectItem value="AANA">Aana</SelectItem>
-                          <SelectItem value="PAISA">Paisa</SelectItem>
-                          <SelectItem value="DAAM">Daam</SelectItem>
-                          <SelectItem value="BIGHA">Bigha</SelectItem>
-                          <SelectItem value="KATTHA">Kattha</SelectItem>
-                          <SelectItem value="DHUR">Dhur</SelectItem>
-                          <SelectItem value="SQ_FT">Square Feet</SelectItem>
-                          <SelectItem value="SQ_MTR">Square Meter</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="space-y-4">
+                <FormLabel>Measurement System</FormLabel>
+                <Select
+                  value={measurementSystem}
+                  onValueChange={handleSystemChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select measurement system" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HILLY">Hilly Region (Ropani/Aana/Paisa/Daam)</SelectItem>
+                    <SelectItem value="TERAI">Terai Region (Bigha/Kattha/Dhur)</SelectItem>
+                    <SelectItem value="FLAT">Simple Units (Sq Ft/Sq Mtr)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Price Field */}
+              {measurementSystem === 'HILLY' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="size.ropani"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ropani</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="size.aana"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Aana (0-15.99)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="size.paisa"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Paisa (0-3.99)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="size.daam"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Daam (0-3.99)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {measurementSystem === 'TERAI' && (
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="size.bigha"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bigha</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="size.kattha"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Kattha (0-19.99)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="size.dhur"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dhur (0-19.99)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {measurementSystem === 'FLAT' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="size.value"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Size</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="size.unit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="SQ_FT">Square Feet</SelectItem>
+                            <SelectItem value="SQ_MTR">Square Meter</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
               <FormField
                 control={form.control}
                 name="price"
@@ -220,10 +403,9 @@ export default function Listland() {
                     <FormLabel>Price per Month (NPR)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Enter monthly price"
                         type="number"
                         {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -231,7 +413,6 @@ export default function Listland() {
                 )}
               />
 
-              {/* Description Field */}
               <FormField
                 control={form.control}
                 name="description"
@@ -250,7 +431,6 @@ export default function Listland() {
                 )}
               />
 
-              {/* Hero Image Upload */}
               <div className="bg-gray-50 p-4 rounded">
                 <h3 className="text-lg font-semibold mb-4 text-gray-800">
                   Hero Image <span className="text-red-500">*</span>
@@ -262,7 +442,6 @@ export default function Listland() {
                 />
               </div>
 
-              {/* Gallery Images Upload */}
               <div className="bg-gray-50 p-4 rounded">
                 <h3 className="text-lg font-semibold mb-4 text-gray-800">Gallery Images</h3>
                 <FileUploadDemo
@@ -272,7 +451,6 @@ export default function Listland() {
                 />
               </div>
 
-              {/* Lalpurja Upload */}
               <div className="bg-gray-50 p-4 rounded">
                 <h3 className="text-lg font-semibold mb-4 text-gray-800">Lalpurja Document</h3>
                 <FileUploadDemo
@@ -282,7 +460,6 @@ export default function Listland() {
                 />
               </div>
 
-              {/* Submit Button */}
               <div className="pt-4">
                 <Button
                   type="submit"

@@ -14,6 +14,7 @@ export const useGetAllKycDetails = () => trpc.user.getAllKycDetails.useQuery();
 // LAND HOOKS
 // ============================================================================
 export const usePublishLand = () => trpc.land.publish.useMutation();
+
 export const useSearchLands = (filters: {
     location?: string;
     minPrice?: number;
@@ -37,6 +38,33 @@ export const useGetLandById = (landId: string) => {
 };
 
 export const useUpdateLandStatus = () => trpc.land.updateStatus.useMutation();
+
+// --- ADMIN LAND MANAGEMENT HOOKS ---
+
+export const useGetAllLandsAdmin = (filters: {
+    status?: 'AVAILABLE' | 'UNVERIFIED' | 'REJECTED' | 'IN_NEGOTIATION' | 'LEASED' | 'HIDDEN';
+}) => trpc.land.getAllLandsAdmin.useQuery(filters);
+
+export const useAcceptLand = () => {
+    const utils = trpc.useUtils();
+    return trpc.land.acceptLand.useMutation({
+        onSuccess: () => {
+            // Refetch admin lists to show updated status immediately
+            utils.land.getAllLandsAdmin.invalidate();
+            // Also invalidate search so the public sees the newly available land
+            utils.land.search.invalidate();
+        }
+    });
+};
+
+export const useRejectLand = () => {
+    const utils = trpc.useUtils();
+    return trpc.land.rejectLand.useMutation({
+        onSuccess: () => {
+            utils.land.getAllLandsAdmin.invalidate();
+        }
+    });
+};
 
 // ============================================================================
 // LEASE HOOKS
@@ -62,6 +90,5 @@ export const useGetAllApplications = (filters: {
 // ============================================================================
 // ESCROW HOOKS
 // ============================================================================
-// Ensure your escrowRouter is defined in your backend for these to work!
 export const usePayEscrow = () => trpc.escrow.PayEscrow.useMutation();
 export const useVerifyMalpotPapers = () => trpc.escrow.VerifyMalpotPapers.useMutation();
