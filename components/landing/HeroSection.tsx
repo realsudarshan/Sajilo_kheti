@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, MapPin } from "lucide-react"
+import Image from "next/image"
 
 export function HeroSection() {
     return (
@@ -70,7 +71,13 @@ export function HeroSection() {
                                     </svg>
                                 </div>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-emerald-800/40 font-bold text-2xl">[Hero Image: Diverse group farming together]</span>
+                                    <span className="text-emerald-800/40 font-bold text-2xl"><Image
+  src="/nepali_heropic.png"
+  alt="Hero Image"
+  fill
+  className="object-cover"
+/>
+</span>
                                 </div>
                             </div>
                         </div>
