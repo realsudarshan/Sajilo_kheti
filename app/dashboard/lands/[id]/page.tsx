@@ -94,13 +94,9 @@ export default function LandDetailPage() {
                         <SpecBox 
                             icon={<Maximize2 className="text-blue-600" />} 
                             label="Total Size" 
-                            value={`${formatNum(land.sizeInSqFt)} Sq Ft`} 
+                            value={`${formatNum(land.sizeInSqmeter)} Sq Ft`} 
                         />
-                        <SpecBox 
-                            icon={<FileText className="text-orange-600" />} 
-                            label="Land Type" 
-                            value={land.area || "N/A"} 
-                        />
+                       
                         <SpecBox 
                             icon={<Calendar className="text-purple-600" />} 
                             label="Listed On" 

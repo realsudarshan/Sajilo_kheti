@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function LandCard({ land }: { land: any }) {
-    const formatNum = (n: number) => n.toLocaleString('en-US');
+    const formatNum = (n: number) => n?.toLocaleString('en-US') ?? '0';
 
     return (
         <Card className="group overflow-hidden border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 bg-white flex flex-col h-full rounded-3xl">
@@ -42,7 +42,7 @@ export function LandCard({ land }: { land: any }) {
                     </div>
                     <div className="p-3 bg-slate-50 rounded-2xl text-right">
                         <span className="block text-[9px] uppercase font-bold text-slate-400 tracking-wider">Area</span>
-                        <span className="font-bold text-slate-900 font-mono">{formatNum(land.sizeInSqFt)} ft²</span>
+                        <span className="font-bold text-slate-900 font-mono">{formatNum(land.sizeInSqmeter)} ft²</span>
                     </div>
                 </div>
             </CardContent>
