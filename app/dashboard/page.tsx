@@ -1,282 +1,188 @@
 "use client"
 
-import { LandCard } from "@/components/dashboard/LandCard"
-import { MessageBox } from "@/components/dashboard/MessageBox"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-    activeLeasersMessage,
-    applicationSentMessage,
-    pendingRequestMessage,
-} from "@/data/dashboardMessageBoxes"
-import type { LandType } from "@/types/land.types"
-import { ArrowRight } from "lucide-react"
+import React, { useState } from "react"
 import Link from "next/link"
-import { useState } from "react"
-import { lands as findLands } from "@/data/lands"
+import { 
+  LayoutDashboard, 
+  Map as MapIcon, 
+  History, 
+  TrendingUp, 
+  Search,
+  ChevronRight,
+  ArrowUpRight,
+  User,
+  Ruler,
+  BadgeDollarSign
+} from "lucide-react"
 
-export default function Dashboard() {
-    const [selectedLandApplication, setSelectedLandApplication] = useState<LandType | null>(null)
-    const [selectedLandActive, setSelectedLandActive] = useState<LandType | null>(null)
-    const [selectedLandSaved, setSelectedLandSaved] = useState<LandType | null>(null)
+// Assuming these are in your project
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-    // Get first 3 lands for display
-    const firstThree = findLands.slice(0, 3)
+// --- MOCK DATA ---
+const MOCK_LEASES = [
+  {
+    id: "LND-001",
+    title: "Green Valley Fields",
+    location: "Lalitpur, Nepal",
+    size: "15 Ropani",
+    price: "रू 50,000/year",
+    status: "Active",
+    owner: "Sita Sharma",
+    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=500&auto=format&fit=crop"
+  },
+  {
+    id: "LND-002",
+    title: "Mountain Side Organic",
+    location: "Kavre, Nepal",
+    size: "10 Ropani",
+    price: "रू 35,000/year",
+    status: "Pending",
+    owner: "Ram Bahadur",
+    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=500&auto=format&fit=crop"
+  }
+]
 
-    return (
-        <div className="space-y-8">
-            {/* Page header */}
-            <div>
-                <h1 className="text-3xl font-bold">Overview — Land Leasing Dashboard</h1>
-                <p className="text-sm text-gray-600 mt-1">For people who want to lease land</p>
+export default function LeaserDashboard() {
+  const [activeLand, setActiveLand] = useState(MOCK_LEASES[0])
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] text-slate-900 p-6 md:p-10">
+      <div className="max-w-7xl mx-auto space-y-10">
+        
+        {/* --- TOP NAVIGATION / HEADER --- */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">Dashboard</h1>
+            <p className="text-slate-500 font-medium">Monitoring your leased land and applications.</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" className="rounded-xl border-slate-200 shadow-sm">
+              <History className="mr-2 h-4 w-4" /> History
+            </Button>
+            <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200">
+              <Search className="mr-2 h-4 w-4" /> Find New Land
+            </Button>
+          </div>
+        </header>
+
+        {/* --- STATS GRID --- */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard label="Active Leases" value="04" trend="+1 this month" icon={<MapIcon className="text-emerald-600"/>} />
+          <StatCard label="Pending Apps" value="02" trend="Awaiting owner" icon={<TrendingUp className="text-blue-600"/>} />
+          <StatCard label="Total Spent" value="रू 1.2M" trend="Annualized" icon={<BadgeDollarSign className="text-amber-600"/>} />
+        </section>
+
+        {/* --- MAIN INTERFACE --- */}
+        <Tabs defaultValue="overview" className="space-y-8">
+          <TabsList className="bg-slate-100/50 p-1 rounded-2xl inline-flex border border-slate-200">
+            <TabsTrigger value="overview" className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
+            <TabsTrigger value="applications" className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">Applications</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* LEFT: LIST OF LANDS */}
+            <div className="lg:col-span-7 space-y-4">
+              <h3 className="text-lg font-bold px-1">Current Leases</h3>
+              <div className="grid gap-4">
+                {MOCK_LEASES.map((land) => (
+                  <div 
+                    key={land.id}
+                    onClick={() => setActiveLand(land)}
+                    className={`group cursor-pointer p-4 rounded-3xl border-2 transition-all flex gap-5 items-center bg-white ${
+                      activeLand.id === land.id ? 'border-emerald-500 shadow-xl' : 'border-transparent hover:border-slate-200 shadow-sm'
+                    }`}
+                  >
+                    <div className="h-24 w-24 rounded-2xl overflow-hidden flex-shrink-0">
+                      <img src={land.image} alt={land.title} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-bold text-lg">{land.title}</h4>
+                        <Badge variant={land.status === 'Active' ? 'default' : 'secondary'} className={land.status === 'Active' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
+                          {land.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                        <MapIcon size={14} /> {land.location}
+                      </p>
+                    </div>
+                    <ChevronRight className={`transition-transform ${activeLand.id === land.id ? 'rotate-90 text-emerald-500' : 'text-slate-300'}`} />
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* ===== SECTION 1: CREATE LAND (ALONE, IN MIDDLE) ===== */}
-            <div className="flex justify-center">
-                <div className="bg-white p-8 rounded-lg shadow-sm w-full max-w-md text-center">
-                    <h2 className="text-2xl font-semibold mb-2">Create Land</h2>
-                    <p className="text-sm text-gray-600">Start leasing your first land today</p>
+            {/* RIGHT: DETAIL PANE */}
+            <aside className="lg:col-span-5 sticky top-6">
+              <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white">
+                <div className="relative h-48">
+                  <img src={activeLand.image} className="w-full h-full object-cover" alt="Preview" />
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                    {activeLand.id}
+                  </div>
                 </div>
-            </div>
+                
+                <CardHeader className="pt-8">
+                  <CardTitle className="text-2xl font-black italic uppercase tracking-tight">{activeLand.title}</CardTitle>
+                </CardHeader>
 
-            {/* ===== SECTION 2: THREE TABS (APPLICATION SENT, ACTIVE LEASERS, PENDING REQUEST) ===== */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-                <Tabs defaultValue="applications" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="applications">Application Sent</TabsTrigger>
-                        <TabsTrigger value="active">Active Leases</TabsTrigger>
-                        <TabsTrigger value="pending">Pending Request</TabsTrigger>
-                    </TabsList>
+                <CardContent className="space-y-8 pb-10">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Area Size</p>
+                      <p className="font-bold flex items-center gap-2"><Ruler size={16} /> {activeLand.size}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Valuation</p>
+                      <p className="font-bold flex items-center gap-2 text-emerald-600 font-mono italic">{activeLand.price}</p>
+                    </div>
+                  </div>
 
-                    <TabsContent value="applications" className="mt-6">
-                        <div>
-                            <MessageBox messageBox={applicationSentMessage} />
-                            <div>
-                                <LandCard lands={firstThree} />
-                            </div>
-                            <div className="mt-6 flex justify-center">
-                                <Link href="/dashboard/find-land" className="flex items-center gap-2 text-blue-600 font-medium hover:text-blue-800 hover:bg-blue-50 px-4 py-2 rounded transition-all duration-200">
-                                    View More <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            </div>
-                        </div>
-                    </TabsContent>
+                  <div className="space-y-3">
+                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Lease Holder / Owner</p>
+                    <div className="flex items-center gap-4 bg-slate-900 text-white p-4 rounded-3xl">
+                      <div className="h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <User size={20} />
+                      </div>
+                      <span className="font-bold text-sm uppercase tracking-wide">{activeLand.owner}</span>
+                      <ArrowUpRight size={18} className="ml-auto text-emerald-400" />
+                    </div>
+                  </div>
 
-                    <TabsContent value="active" className="mt-6">
-                        <div>
-                            <MessageBox messageBox={activeLeasersMessage} />
-                            <div>
-                                <LandCard lands={firstThree} />
-                            </div>
-                            <div className="mt-6 flex justify-center">
-                                <Link href="/dashboard/find-land" className="flex items-center gap-2 text-green-600 font-medium hover:text-green-800 hover:bg-green-50 px-4 py-2 rounded transition-all duration-200">
-                                    View More <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            </div>
-                        </div>
-                    </TabsContent>
+                  <div className="flex flex-col gap-3 pt-4">
+                    <Button className="w-full h-14 rounded-2xl bg-slate-900 text-white font-bold text-lg hover:scale-[1.02] transition-transform">
+                      View Contract
+                    </Button>
+                    <Button variant="link" className="text-slate-400 hover:text-red-500 font-bold transition-colors">
+                      Terminate Request
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </aside>
 
-                    <TabsContent value="pending" className="mt-6">
-                        <div>
-                            <MessageBox messageBox={pendingRequestMessage} />
-                            <div>
-                                <LandCard lands={firstThree} />
-                            </div>
-                            <div className="mt-6 flex justify-center">
-                                <button disabled className="flex items-center gap-2 text-gray-400 font-medium cursor-not-allowed opacity-50 px-4 py-2 rounded">
-                                    View More <ArrowRight className="h-4 w-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  )
+}
 
-            {/* ===== SECTION 3: MY APPLICATION, ACTIVE LAND, SAVED LAND WITH NESTED DETAILS ===== */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-                <Tabs defaultValue="myapp" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="myapp">My Application</TabsTrigger>
-                        <TabsTrigger value="activeland">Active Land</TabsTrigger>
-                        <TabsTrigger value="saved">Saved Land</TabsTrigger>
-                    </TabsList>
-
-                    {/* ===== TAB 1: MY APPLICATION ===== */}
-                    <TabsContent value="myapp" className="mt-6">
-                        <div className="space-y-6">
-                            {/* Land Cards Section */}
-                            <div>
-                                <p className="text-sm text-gray-600 mb-4">Your submitted applications. Click on a land to view details below.</p>
-                                <div
-                                    onClick={() => setSelectedLandApplication(firstThree[0] || null)}
-                                    className="cursor-pointer"
-                                >
-                                    <LandCard lands={firstThree} />
-                                </div>
-                            </div>
-
-                            {/* Details Section - Shown below when land is selected */}
-                            {selectedLandApplication && (
-                                <div className="bg-gray-50 p-6 rounded-lg border">
-                                    <h3 className="text-lg font-semibold mb-4">Application Details</h3>
-                                    <Tabs defaultValue="details">
-                                        <TabsList className="grid w-full grid-cols-3">
-                                            <TabsTrigger value="details">Details</TabsTrigger>
-                                            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                                            <TabsTrigger value="documents">Documents</TabsTrigger>
-                                        </TabsList>
-
-                                        <TabsContent value="details" className="mt-4">
-                                            <div className="text-sm space-y-3">
-                                                <p><strong>Land:</strong> {selectedLandApplication.landtitle}</p>
-                                                <p><strong>Owner:</strong> {selectedLandApplication.landownername}</p>
-                                                <p><strong>Location:</strong> {selectedLandApplication.landlocation}</p>
-                                                <p><strong>Size:</strong> {selectedLandApplication.size}</p>
-                                                <p><strong>Price:</strong> {selectedLandApplication.pricing}</p>
-                                                <p><strong>Status:</strong> <span className="text-yellow-600 font-semibold">Pending</span></p>
-                                            </div>
-                                        </TabsContent>
-
-                                        <TabsContent value="timeline" className="mt-4">
-                                            <ul className="text-sm space-y-3">
-                                                <li className="flex items-start gap-3">
-                                                    <span className="text-green-600">✓</span>
-                                                    <span>Application submitted</span>
-                                                </li>
-                                                <li className="flex items-start gap-3">
-                                                    <span className="text-blue-600">→</span>
-                                                    <span>Awaiting owner review</span>
-                                                </li>
-                                                <li className="flex items-start gap-3">
-                                                    <span className="text-gray-400">-</span>
-                                                    <span>Documents verification</span>
-                                                </li>
-                                                <li className="flex items-start gap-3">
-                                                    <span className="text-gray-400">-</span>
-                                                    <span>Final approval</span>
-                                                </li>
-                                            </ul>
-                                        </TabsContent>
-
-                                        <TabsContent value="documents" className="mt-4">
-                                            <p className="text-sm text-gray-600">No documents uploaded yet. Upload required documents to proceed.</p>
-                                        </TabsContent>
-                                    </Tabs>
-                                </div>
-                            )}
-                        </div>
-                    </TabsContent>
-
-                    {/* ===== TAB 2: ACTIVE LAND ===== */}
-                    <TabsContent value="activeland" className="mt-6">
-                        <div className="space-y-6">
-                            {/* Land Cards Section */}
-                            <div>
-                                <p className="text-sm text-gray-600 mb-4">All active lands you are currently leasing. Click on a land to view details below.</p>
-                                <div
-                                    onClick={() => setSelectedLandActive(findLands[0] || null)}
-                                    className="cursor-pointer"
-                                >
-                                    <LandCard lands={findLands} />
-                                </div>
-                            </div>
-
-                            {/* Details Section - Shown below when land is selected */}
-                            {selectedLandActive && (
-                                <div className="bg-gray-50 p-6 rounded-lg border">
-                                    <h3 className="text-lg font-semibold mb-4">Land Overview</h3>
-                                    <Tabs defaultValue="overview">
-                                        <TabsList className="grid w-full grid-cols-3">
-                                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                                            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-                                            <TabsTrigger value="payments">Payments</TabsTrigger>
-                                        </TabsList>
-
-                                        <TabsContent value="overview" className="mt-4">
-                                            <div className="text-sm space-y-3">
-                                                <p><strong>Land:</strong> {selectedLandActive.landtitle}</p>
-                                                <p><strong>Owner:</strong> {selectedLandActive.landownername}</p>
-                                                <p><strong>Location:</strong> {selectedLandActive.landlocation}</p>
-                                                <p><strong>Size:</strong> {selectedLandActive.size}</p>
-                                                <p><strong>Price:</strong> {selectedLandActive.pricing}</p>
-                                                <p><strong>Status:</strong> <span className="text-green-600 font-semibold">Active</span></p>
-                                                <p><strong>Lease Start:</strong> Jan 1, 2026</p>
-                                            </div>
-                                        </TabsContent>
-
-                                        <TabsContent value="maintenance" className="mt-4">
-                                            <ul className="text-sm space-y-2">
-                                                <li>• Irrigation scheduled: Next Tuesday</li>
-                                                <li>• Soil testing: Pending</li>
-                                                <li>• Fertilizer application: 2 weeks ago</li>
-                                                <li>• Pest control: Completed</li>
-                                            </ul>
-                                        </TabsContent>
-
-                                        <TabsContent value="payments" className="mt-4">
-                                            <div className="text-sm space-y-3">
-                                                <p><strong>Next payment:</strong> Due in 5 days</p>
-                                                <p><strong>Amount:</strong> {selectedLandActive.pricing}</p>
-                                                <p><strong>Status:</strong> <span className="text-blue-600 font-semibold">Pending</span></p>
-                                                <p><strong>Payment method:</strong> Bank Transfer</p>
-                                            </div>
-                                        </TabsContent>
-                                    </Tabs>
-                                </div>
-                            )}
-                        </div>
-                    </TabsContent>
-
-                    {/* ===== TAB 3: SAVED LAND ===== */}
-                    <TabsContent value="saved" className="mt-6">
-                        <div className="space-y-6">
-                            {/* Land Cards Section */}
-                            <div>
-                                <p className="text-sm text-gray-600 mb-4">Lands you have saved for later. Click on a land to view details below.</p>
-                                <div
-                                    onClick={() => setSelectedLandSaved(firstThree[1] || null)}
-                                    className="cursor-pointer"
-                                >
-                                    <LandCard lands={firstThree} />
-                                </div>
-                            </div>
-
-                            {/* Details Section - Shown below when land is selected */}
-                            {selectedLandSaved && (
-                                <div className="bg-gray-50 p-6 rounded-lg border">
-                                    <h3 className="text-lg font-semibold mb-4">Saved Land Information</h3>
-                                    <Tabs defaultValue="list">
-                                        <TabsList className="grid w-full grid-cols-3">
-                                            <TabsTrigger value="list">List</TabsTrigger>
-                                            <TabsTrigger value="shared">Shared</TabsTrigger>
-                                            <TabsTrigger value="archived">Archived</TabsTrigger>
-                                        </TabsList>
-
-                                        <TabsContent value="list" className="mt-4">
-                                            <div className="text-sm space-y-3">
-                                                <p><strong>Land:</strong> {selectedLandSaved.landtitle}</p>
-                                                <p><strong>Owner:</strong> {selectedLandSaved.landownername}</p>
-                                                <p><strong>Location:</strong> {selectedLandSaved.landlocation}</p>
-                                                <p><strong>Size:</strong> {selectedLandSaved.size}</p>
-                                                <p><strong>Price:</strong> {selectedLandSaved.pricing}</p>
-                                                <p><strong>Saved on:</strong> Jan 3, 2026</p>
-                                                <p><strong>Notes:</strong> Good location for rice farming</p>
-                                            </div>
-                                        </TabsContent>
-
-                                        <TabsContent value="shared" className="mt-4">
-                                            <p className="text-sm text-gray-600">Not shared with anyone yet. You can share this land with family members or partners.</p>
-                                        </TabsContent>
-
-                                        <TabsContent value="archived" className="mt-4">
-                                            <p className="text-sm text-gray-600">This land is not archived. Archive it to hide from your saved list.</p>
-                                        </TabsContent>
-                                    </Tabs>
-                                </div>
-                            )}
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            </div>
-        </div>
-    )
+function StatCard({ label, value, trend, icon }: any) {
+  return (
+    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+      <div className="flex justify-between items-start">
+        <div className="p-3 bg-slate-50 rounded-2xl">{icon}</div>
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{trend}</span>
+      </div>
+      <div>
+        <h2 className="text-3xl font-black tracking-tight">{value}</h2>
+        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">{label}</p>
+      </div>
+    </div>
+  )
 }

@@ -5,6 +5,7 @@ import { UserButton } from "@clerk/nextjs"
 import { Sprout } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import LandownerShadcnButton from "./Belandowner"
 
 const navigation = [
     { name: "Overview", href: "/dashboard" },
@@ -45,9 +46,7 @@ export function DashboardHeader() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="sm" className="hidden sm:flex border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                        List Your Land
-                    </Button>
+                   <LandownerShadcnButton/>
                     <div className="h-8 w-px bg-gray-200 hidden sm:block" />
                     <UserButton afterSignOutUrl="/" showName />
                 </div>
