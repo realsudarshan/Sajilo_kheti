@@ -74,48 +74,31 @@ export default function LandownerDashboard() {
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Land Listings */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Your Recent Listings</h2>
-            <Link href="/landowner-dashboard/my-lands" className="text-sm text-emerald-600 font-semibold hover:underline">
-              View all
-            </Link>
+       <div className="space-y-4">
+  {user?.lands?.slice(0, 3).map((land: any) => (
+    /* Wrap the card in a Link */
+    <Link 
+      key={land.id} 
+      href={`/landowner-dashboard/my-lands/${land.id}/applications`}
+      className="block" // Ensures the link fills the space
+    >
+      <div className="flex items-center justify-between p-4 rounded-xl border border-gray-50 hover:bg-gray-50 transition-colors group">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
+            <MapPin className="h-6 w-6" />
           </div>
-          
-          <div className="p-6">
-            {totalLands > 0 ? (
-              <div className="space-y-4">
-                {user?.lands?.slice(0, 3).map((land: any) => (
-                  <div key={land.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-50 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
-                        <MapPin className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{land.title}</p>
-                        <p className="text-xs text-gray-500">{land.location}</p>
-                      </div>
-                    </div>
-                    <ArrowUpRight className="h-5 w-5 text-gray-300" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-12 flex flex-col items-center text-center">
-                <div className="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
-                  <MapPin className="h-8 w-8" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">No lands listed yet</h3>
-                <p className="text-gray-500 text-sm max-w-xs mb-6">
-                  Turn your unused land into a productive farm by listing it for local farmers.
-                </p>
-                <Link href="/landowner-dashboard/my-lands/new">
-                  <Button variant="outline" className="rounded-xl">Start Listing</Button>
-                </Link>
-              </div>
-            )}
+          <div>
+            <p className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">
+              {land.title}
+            </p>
+            <p className="text-xs text-gray-500">{land.location}</p>
           </div>
         </div>
+        <ArrowUpRight className="h-5 w-5 text-gray-300 group-hover:text-emerald-500 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
+      </div>
+    </Link>
+  ))}
+</div>
 
         {/* Recent Activity / Notifications */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">

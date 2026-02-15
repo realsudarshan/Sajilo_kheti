@@ -46,3 +46,14 @@ export const VerifyOwnerSchema = z.object({
   backcitizenshippic: z.string(),
   citizenshipno: z.string()
 })
+
+
+export const requestedLeaseInputSchema = z.object({
+  landId: z.string().min(1, "Land ID is required"),
+  leaseDurationInMonths: z.number().positive("Duration must be a positive number"),
+  proposedMonthlyRent: z.number().positive("Rent must be a positive number"),
+  plans: z.string().min(10, "Please provide more detail about your plans"),
+  additionalMessages: z.string().optional(),
+});
+
+export type RequestedLeaseInput = z.infer<typeof requestedLeaseInputSchema>;

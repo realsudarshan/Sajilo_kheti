@@ -1,16 +1,20 @@
 'use client'
 
-import React from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { 
-    MapPin, Maximize2, Landmark, ArrowLeft, 
-    Calendar, DollarSign, FileText, CheckCircle2 
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useGetLandById } from '@/queryandmutation'
+import {
+    ArrowLeft,
+    Calendar,
+    CheckCircle2,
+    DollarSign,
+    Landmark,
+    MapPin, Maximize2
+} from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import React from 'react'
 
 export default function LandDetailPage() {
     const params = useParams()
@@ -37,14 +41,14 @@ export default function LandDetailPage() {
             </div>
 
             <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-2 gap-12">
-                
+
                 {/* Left Side: Visuals */}
                 <div className="space-y-6">
                     <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-slate-100 shadow-2xl">
                         {land.heroImageUrl ? (
-                            <img 
-                                src={land.heroImageUrl} 
-                                alt={land.title} 
+                            <img
+                                src={land.heroImageUrl}
+                                alt={land.title}
                                 className="w-full h-full object-cover"
                             />
                         ) : (
@@ -86,21 +90,21 @@ export default function LandDetailPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <SpecBox 
-                            icon={<DollarSign className="text-green-600" />} 
-                            label="Monthly Rent" 
-                            value={`NPR ${formatNum(land.pricePerMonth)}`} 
+                        <SpecBox
+                            icon={<DollarSign className="text-green-600" />}
+                            label="Monthly Rent"
+                            value={`NPR ${formatNum(land.pricePerMonth)}`}
                         />
-                        <SpecBox 
-                            icon={<Maximize2 className="text-blue-600" />} 
-                            label="Total Size" 
-                            value={`${formatNum(land.sizeInSqmeter)} Sq Ft`} 
+                        <SpecBox
+                            icon={<Maximize2 className="text-blue-600" />}
+                            label="Total Size"
+                            value={`${formatNum(land.sizeInSqmeter)} Sq Ft`}
                         />
-                       
-                        <SpecBox 
-                            icon={<Calendar className="text-purple-600" />} 
-                            label="Listed On" 
-                            value={new Date(land.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} 
+
+                        <SpecBox
+                            icon={<Calendar className="text-purple-600" />}
+                            label="Listed On"
+                            value={new Date(land.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                         />
                     </div>
 
@@ -113,10 +117,12 @@ export default function LandDetailPage() {
                         <p className="text-xs text-slate-500">
                             The Lalpurja and ownership documents for this plot have been officially verified by our system.
                         </p>
-                     
+
                     </div>
 
-                    <Button className="w-full h-16 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all">
+                    <Button
+                        onClick={() => router.push(`/dashboard/lands/${landId}/send-application`)}
+                        className="w-full h-16 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all">
                         Inquire About This Land
                     </Button>
                 </div>

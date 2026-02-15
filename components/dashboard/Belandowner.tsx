@@ -13,7 +13,7 @@ export default function LandownerActionButtons() {
       
       {/* --- BECOME LANDOWNER (Green & Shiny) --- */}
       <Button 
-        onClick={() => router.push("/verify-landowner")}
+        onClick={() => router.push("/dashboard/verify-landowner")}
         size="sm"
         className="
           group relative h-12 overflow-hidden rounded-xl 

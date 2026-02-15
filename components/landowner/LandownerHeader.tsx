@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { UserAccountNav } from "./userAccountNav"
 
 const landownerNavigation = [
-    { name: "Overview", href: "/landowner-dashboard", icon: LayoutDashboard },
+    { name: "Overview", href: "/landowner-dashboard/dashboard", icon: LayoutDashboard },
     { name: "My Lands", href: "/landowner-dashboard/my-lands", icon: MapPin },
     { name: "Lease Requests", href: "/landowner-dashboard/applications", icon: ClipboardList },
 ]
@@ -19,7 +19,7 @@ export function LandownerHeader() {
             <div className="container mx-auto px-4 lg:px-8 h-16 flex items-center justify-between">
                 {/* Logo Section */}
                 <div className="flex items-center gap-10">
-                    <Link href="/landowner-dashboard" className="flex items-center gap-2 group">
+                    <Link href="/landowner-dashboard/dashboard" className="flex items-center gap-2 group">
                         <div className="h-9 w-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
                             <Sprout className="h-5 w-5" />
                         </div>
