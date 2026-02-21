@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import Tesseract from "tesseract.js";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -26,7 +27,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUploadThing } from "@/lib/useUploadthings";
 import { VerifyOwnerSchema } from "@/lib/zodschema/schema";
 import { useGetKycDetails, useUpgradeRequest } from "@/queryandmutation/index";
+
 export default function VerifyLandowner() {
+  const [resetKey, setResetKey] = useState(0);
   const { data: kycDetails, isLoading: isKycLoading } = useGetKycDetails();
   const upgradeRequest = useUpgradeRequest();
 
@@ -47,6 +50,49 @@ export default function VerifyLandowner() {
       citizenshipno: "",
     },
   });
+
+  //citizenship validation function
+  // citizenship validation function
+  const validateNepaliID = async (file: File) => {
+    const toastId = toast.loading("Scanning Citizenship Card...");
+    try {
+      const {
+        data: { text },
+      } = await Tesseract.recognize(file, "eng+nep");
+
+      const nepaliKeywords = [
+        "नेपाल",
+        "नेपाली",
+        "नागरिकता",
+        "नागरिकताको",
+        "प्रमाणपत्र",
+        "CITIZENSHIP",
+        "NEPAL",
+      ];
+// Convert text to uppercase for case-insensitive matching
+      const upperText = text.toUpperCase();
+      const isMatch = nepaliKeywords.some((word) =>
+        upperText.includes(word.toUpperCase()),
+      );
+
+      if (isMatch) {
+        toast.success("Nepali Citizenship detected!", { id: toastId });
+        setCitizenshipFile(file);
+      } else {
+        toast.error(
+          "Invalid Document. Please upload a clear photo of your Citizenship.",
+          { id: toastId },
+        );
+        setCitizenshipFile(null);
+        // Bumping this number forces the FileUploadDemo to destroy and recreate itself
+        setResetKey((prev) => prev + 1);
+      }
+    } catch (error) {
+      toast.error("Error reading image. Please try again.", { id: toastId });
+      setCitizenshipFile(null);
+      setResetKey((prev) => prev + 1);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof VerifyOwnerSchema>) {
     if (!citizenshipFile || !selfieFile) {
@@ -73,17 +119,20 @@ export default function VerifyLandowner() {
         selfieUrl: selfieRes[0].url,
       });
 
-      toast.success("KYC Verification request submitted!", { id: loadingToast });
+      toast.success("KYC Verification request submitted!", {
+        id: loadingToast,
+      });
 
       form.reset();
       setCitizenshipFile(null);
       setSelfieFile(null);
       // Ideally trigger a refetch here or invalidate query
       window.location.reload();
-
     } catch (error: any) {
       console.error("Submission Error:", error);
-      toast.error(error.message || "Something went wrong", { id: loadingToast });
+      toast.error(error.message || "Something went wrong", {
+        id: loadingToast,
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -105,7 +154,15 @@ export default function VerifyLandowner() {
           <CardHeader>
             <CardTitle className="flex justify-between items-center">
               KYC Application Status
-              <Badge variant={kycDetails.status === 'APPROVED' ? 'default' : kycDetails.status === 'REJECTED' ? 'destructive' : 'secondary'}>
+              <Badge
+                variant={
+                  kycDetails.status === "APPROVED"
+                    ? "default"
+                    : kycDetails.status === "REJECTED"
+                      ? "destructive"
+                      : "secondary"
+                }
+              >
                 {kycDetails.status}
               </Badge>
             </CardTitle>
@@ -113,11 +170,15 @@ export default function VerifyLandowner() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Citizenship Number</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Citizenship Number
+                </p>
                 <p>{kycDetails.citizenshipNumber}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Submitted At</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Submitted At
+                </p>
                 {/* Assuming created_at or updated_at isn't in returned object currently, skipping date */}
                 <p>Recent</p>
               </div>
@@ -126,12 +187,20 @@ export default function VerifyLandowner() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className="border rounded-lg p-2">
                 <p className="text-sm font-medium mb-2">Document</p>
-                <img src={kycDetails.documentUrl} alt="Citizenship" className="w-full h-48 object-cover rounded" />
+                <img
+                  src={kycDetails.documentUrl}
+                  alt="Citizenship"
+                  className="w-full h-48 object-cover rounded"
+                />
               </div>
               {kycDetails.selfieUrl && (
                 <div className="border rounded-lg p-2">
                   <p className="text-sm font-medium mb-2">Selfie</p>
-                  <img src={kycDetails.selfieUrl} alt="Selfie" className="w-full h-48 object-cover rounded" />
+                  <img
+                    src={kycDetails.selfieUrl}
+                    alt="Selfie"
+                    className="w-full h-48 object-cover rounded"
+                  />
                 </div>
               )}
             </div>
@@ -139,19 +208,24 @@ export default function VerifyLandowner() {
             {kycDetails.status === "REJECTED" && (
               <div className="bg-red-50 p-4 rounded-md text-red-800 mt-4">
                 <p className="font-semibold">Your application was rejected.</p>
-                <p className="text-sm">Please contact support or re-apply if allowed.</p>
+                <p className="text-sm">
+                  Please contact support or re-apply if allowed.
+                </p>
               </div>
             )}
 
             {kycDetails.status === "PENDING" && (
               <div className="bg-blue-50 p-4 rounded-md text-blue-800 mt-4">
-                <p>Your application is currently under review. This process normally takes 24-48 hours.</p>
+                <p>
+                  Your application is currently under review. This process
+                  normally takes 24-48 hours.
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -208,10 +282,21 @@ export default function VerifyLandowner() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormItem>
-              <FormLabel className="font-semibold">Citizenship (Front)</FormLabel>
+              <FormLabel className="font-semibold">
+                Citizenship (Front)
+              </FormLabel>
               <FileUploadDemo
+                // By using resetKey here, the component completely resets
+                // when setResetKey is called in the validator.
+                key={`citizenship-${resetKey}`}
                 files={citizenshipFile ? [citizenshipFile] : []}
-                onFilesChange={(files) => setCitizenshipFile(files[0] || null)}
+                onFilesChange={(files) => {
+                  if (files.length > 0) {
+                    validateNepaliID(files[0]);
+                  } else {
+                    setCitizenshipFile(null);
+                  }
+                }}
                 maxFiles={1}
               />
             </FormItem>
