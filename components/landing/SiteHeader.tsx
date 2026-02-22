@@ -1,6 +1,6 @@
 "use client"
 
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
 import { Menu } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -48,16 +48,16 @@ export function SiteHeader() {
                         FAQ
                     </Link>
                     <SignedOut>
-                        <SignInButton mode="modal">
+                        <Link href="/login">
                             <Button variant="ghost" className="text-sm font-medium hover:text-emerald-600">
                                 Sign In
                             </Button>
-                        </SignInButton>
-                        <SignUpButton mode="modal">
+                        </Link>
+                        <Link href="/sign-up">
                             <Button variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6">
                                 Get Started
                             </Button>
-                        </SignUpButton>
+                        </Link>
                     </SignedOut>
                     <SignedIn>
                         <UserButton afterSignOutUrl="/" />
@@ -97,16 +97,20 @@ export function SiteHeader() {
                                     </Link>
                                 </SheetClose>
                                 <SignedOut>
-                                    <SignInButton mode="modal">
-                                        <Button variant="ghost" className="w-full text-lg font-medium hover:text-emerald-600">
-                                            Sign In
-                                        </Button>
-                                    </SignInButton>
-                                    <SignUpButton mode="modal">
-                                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full">
-                                            Get Started
-                                        </Button>
-                                    </SignUpButton>
+                                    <SheetClose asChild>
+                                        <Link href="/login" className="w-full">
+                                            <Button variant="ghost" className="w-full text-lg font-medium hover:text-emerald-600">
+                                                Sign In
+                                            </Button>
+                                        </Link>
+                                    </SheetClose>
+                                    <SheetClose asChild>
+                                        <Link href="/sign-up" className="w-full">
+                                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full">
+                                                Get Started
+                                            </Button>
+                                        </Link>
+                                    </SheetClose>
                                 </SignedOut>
                                 <SignedIn>
                                     <div className="flex items-center gap-2">

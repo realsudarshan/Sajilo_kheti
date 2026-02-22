@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, MapPin } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 
 export function HeroSection() {
     return (
@@ -30,14 +31,18 @@ export function HeroSection() {
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-8 h-12 text-base">
-                                Find Land Near Me
-                                <MapPin className="ml-2 h-4 w-4" />
-                            </Button>
-                            <Button size="lg" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-full px-8 h-12 text-base">
-                                List Your Land
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
+                            <Link href="/dashboard/find-land">
+                                <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-8 h-12 text-base">
+                                    Find Land Near Me
+                                    <MapPin className="ml-2 h-4 w-4" />
+                                </Button>
+                            </Link>
+                            <Link href="/landowner-dashboard/list-land">
+                                <Button size="lg" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-full px-8 h-12 text-base">
+                                    List Your Land
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </Link>
                         </div>
 
                         <div className="mt-10 flex items-center justify-center lg:justify-start gap-8 text-sm text-gray-500">

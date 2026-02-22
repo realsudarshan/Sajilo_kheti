@@ -44,7 +44,7 @@ export default function LandownerDashboard() {
             Here's what's happening with your land listings today.
           </p>
         </div>
-        <Link href="/landowner-dashboard/my-lands/new">
+        <Link href="/landowner-dashboard/list-land">
           <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 h-12 shadow-lg shadow-emerald-200 transition-all hover:scale-105">
             <Plus className="mr-2 h-5 w-5" />
             List New Land

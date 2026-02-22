@@ -345,6 +345,9 @@ export default function SignUpPage() {
                         </div>
                     )}
 
+                    {/* Clerk Smart CAPTCHA widget */}
+                    <div id="clerk-captcha" />
+
                     <button
                         type="submit"
                         disabled={registerForm.formState.isSubmitting}
