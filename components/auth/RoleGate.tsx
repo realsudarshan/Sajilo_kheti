@@ -21,8 +21,9 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
     (user.role === 'OWNER' && isOwnerPath) ||
     (user.role === 'LEASER' && isLeaserPath)
   ) : false;
-
+console.log('RoleGate Render:', { user, pathname, isAdminPath, isOwnerPath, isLeaserPath, isAuthorized });
   useEffect(() => {
+    console.log('RoleGate Check:', { user, pathname, isAdminPath, isOwnerPath, isLeaserPath, isAuthorized });
     if (isLoading) return;
 
     // 1. Unauthenticated
@@ -63,3 +64,8 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
+
+
+
+

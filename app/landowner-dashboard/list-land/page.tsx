@@ -3,11 +3,13 @@
 import { useUser } from '@clerk/nextjs'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { GoogleMap, Marker, useJsApiLoader, Autocomplete } from '@react-google-maps/api'
 
+// UI Components
 import { FileUploadDemo } from '@/components/landowner/uploadfile'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,462 +19,302 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useUploadThing } from '@/lib/useUploadthings'
 import { LandSizeSchema } from '@/lib/zodschema/schema'
 import { usePublishLand } from '@/queryandmutation'
 
-// Define schema inline
+const LIBRARIES: ("places")[] = ["places"];
+
+const TERAI_DISTRICTS = [
+  "Jhapa", "Morang", "Sunsari", "Saptari", "Siraha", "Dhanusha", "Mahottari", 
+  "Sarlahi", "Rautahat", "Bara", "Parsa", "Chitwan", "Nawalpur", "Parasi", 
+  "Rupandehi", "Kapilvastu", "Dang", "Banke", "Bardiya", "Kailali", "Kanchanpur"
+];
+
+const INITIAL_COORDS = { lat: 27.7172, lng: 85.3240 };
+
 const formSchema = z.object({
-  title: z.string().min(5, "Title is too short").max(100),
+  title: z.string().min(5, "Title must be at least 5 characters"),
   location: z.string().min(1, "Location is required"),
+  coordinates: z.object({ lat: z.number(), lng: z.number() }),
   size: LandSizeSchema,
-  price: z.number().positive("Price must be greater than 0"),
-  description: z.string().min(10, "Please provide a more detailed description"),
+  price: z.number().positive("Price must be a positive number"),
+  description: z.string().min(20, "Please provide a detailed description"),
 })
 
-type FormData = z.infer<typeof formSchema>
-
-export default function Listland() {
+export default function ListLandPage() {
   const { user } = useUser()
   const router = useRouter()
+  const publishLand = usePublishLand()
+  
   const { startUpload, isUploading } = useUploadThing("imageUploader")
   const { startUpload: startUploadHero, isUploading: isUploadingHero } = useUploadThing("photoUploader")
-  const publishLand = usePublishLand()
 
   const [files, setFiles] = useState<File[]>([])
   const [heroFile, setHeroFile] = useState<File | null>(null)
   const [lalpurjaFile, setLalpurjaFile] = useState<File | null>(null)
-  const [measurementSystem, setMeasurementSystem] = useState<'HILLY' | 'TERAI' | 'FLAT'>('HILLY')
+  const [measurementSystem, setMeasurementSystem] = useState<'HILLY' | 'TERAI'>('HILLY')
 
-  const form = useForm<FormData>({
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+    libraries: LIBRARIES,
+  })
+
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       location: '',
-      size: {
-        system: 'HILLY',
-        ropani: 0,
-        aana: 0,
-        paisa: 0,
-        daam: 0,
-      },
+      coordinates: INITIAL_COORDS,
+      size: { system: 'HILLY', ropani: 0, aana: 0, paisa: 0, daam: 0 },
       price: 0,
       description: '',
     },
   })
 
-  const handleSystemChange = (newSystem: 'HILLY' | 'TERAI' | 'FLAT') => {
-    setMeasurementSystem(newSystem)
+  const handleRegionSwitch = useCallback((district: string | undefined) => {
+    if (!district) return;
+    const isTerai = TERAI_DISTRICTS.includes(district);
+    const targetSystem = isTerai ? 'TERAI' : 'HILLY';
 
-    if (newSystem === 'HILLY') {
-      form.setValue('size', {
-        system: 'HILLY',
-        ropani: 0,
-        aana: 0,
-        paisa: 0,
-        daam: 0,
-      })
-    } else if (newSystem === 'TERAI') {
-      form.setValue('size', {
-        system: 'TERAI',
-        bigha: 0,
-        kattha: 0,
-        dhur: 0,
-      })
-    } else {
-      form.setValue('size', {
-        system: 'FLAT',
-        value: 0,
-        unit: 'SQ_FT',
-      })
+    if (measurementSystem !== targetSystem) {
+      setMeasurementSystem(targetSystem);
+      form.setValue('size', isTerai 
+        ? { system: 'TERAI', bigha: 0, kattha: 0, dhur: 0 } 
+        : { system: 'HILLY', ropani: 0, aana: 0, paisa: 0, daam: 0 }
+      );
+      toast.info(`Switched to ${targetSystem} measurement system`);
     }
-  }
+  }, [measurementSystem, form]);
 
-  const onSubmit = async (values: FormData) => {
-    if (!user?.id) {
-      toast.error('You must be logged in to list land')
-      return
-    }
+  const updateLocationData = useCallback((lat: number, lng: number) => {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status === "OK" && results) {
+        const isNepal = results.some(r => r.address_components.some(c => c.short_name === 'NP'));
+        if (!isNepal) {
+          toast.error("Location must be within Nepal.");
+          form.setValue("coordinates", INITIAL_COORDS);
+          return;
+        }
 
-    if (!heroFile) {
-      toast.error('Please upload a hero image')
-      return
+        const bestMatch = results.find(r => !r.types.includes("plus_code") && !r.formatted_address.includes("+")) || results[0];
+        const district = bestMatch.address_components.find(c => c.types.includes("administrative_area_level_2"))?.long_name;
+        handleRegionSwitch(district);
+        form.setValue("location", bestMatch.formatted_address.split(", Nepal")[0]);
+      }
+    });
+  }, [handleRegionSwitch, form]);
+
+  const onPlaceChanged = () => {
+    const place = autocompleteRef.current?.getPlace();
+    if (place?.geometry?.location) {
+      const coords = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
+      const district = place.address_components?.find(c => c.types.includes("administrative_area_level_2"))?.long_name;
+      form.setValue("coordinates", coords);
+      form.setValue("location", place.formatted_address?.split(", Nepal")[0] || "");
+      handleRegionSwitch(district);
+      mapRef.current?.panTo(coords);
     }
+  };
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!user?.id) return toast.error('Please login first');
+    if (!heroFile) return toast.error('Please upload a display image');
+    if (!lalpurjaFile) return toast.error('Please upload Lalpurja');
 
     try {
       const heroRes = await startUploadHero([heroFile])
-      if (!heroRes) {
-        toast.error('Failed to upload hero image')
-        return
-      }
-      const heroImageUrl = heroRes[0].url
-
-      let galleryUrls: string[] = []
-      if (files && files.length > 0) {
-        const res = await startUpload(files)
-        if (!res) {
-          toast.error('Failed to upload gallery images')
-          return
-        }
-        galleryUrls = res.map((file: any) => file.url)
-      }
-
-      let lalpurjaUrl: string | null = null
-      if (lalpurjaFile) {
-        const lalpurjaRes = await startUploadHero([lalpurjaFile])
-        if (lalpurjaRes) {
-          lalpurjaUrl = lalpurjaRes[0].url
-        }
-      }
+      if (!heroRes) throw new Error('Display image upload failed')
+      
+      let galleryUrls = files.length > 0 ? (await startUpload(files))?.map(f => f.url) : [];
+      let lalpurjaUrl = (await startUploadHero([lalpurjaFile]))?.[0].url;
 
       await publishLand.mutateAsync({
         ownerId: user.id,
-        title: values.title,
-        location: values.location,
-        size: values.size,
-        price: values.price,
-        description: values.description,
-        landpic: heroImageUrl,
-        morelandpic: galleryUrls,
-        lalpurjaUrl: lalpurjaUrl||undefined,
+        ...values,
+        landpic: heroRes[0].url,
+        morelandpic: galleryUrls || [],
+        lalpurjaUrl: lalpurjaUrl,
       })
 
-      toast.success('Land listed successfully!')
-      router.push('/dashboard')
-    } catch (error: any) {
-      console.error('Upload failed:', error)
-      toast.error(error.message || 'Failed to list land')
+      toast.success('Land published successfully!');
+      router.push('/dashboard');
+    } catch (e: any) {
+      toast.error(e.message || "An error occurred");
     }
   }
 
+  if (!isLoaded) return <div className="p-20 text-center">Initialising Maps...</div>;
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-3xl font-bold mb-8 text-gray-900">List Your Land</h1>
+    <div className="max-w-5xl mx-auto py-10 px-4 space-y-10">
+      <div className="space-y-2 text-center md:text-left">
+        <h1 className="text-4xl font-extrabold tracking-tight">List Your Property</h1>
+        <p className="text-muted-foreground">Provide accurate details to sell your land faster.</p>
+      </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          
+          {/* SECTION 1: TITLE */}
+          <div className="p-6 bg-white border rounded-xl shadow-sm space-y-6">
+            <h2 className="text-xl font-bold border-b pb-2">1. Basic Information</h2>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Property Title</FormLabel>
+                  <FormControl><Input placeholder="e.g., Prime land for sale in Pokhara" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Prime Agricultural Land in Kathmandu" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+          {/* SECTION 2: LOCATION */}
+          <div className="p-6 bg-white border rounded-xl shadow-sm space-y-6">
+            <h2 className="text-xl font-bold border-b pb-2">2. Location Details</h2>
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Search Address</FormLabel>
+                  <Autocomplete 
+                    onLoad={(a) => { autocompleteRef.current = a }} 
+                    onPlaceChanged={onPlaceChanged} 
+                    options={{ componentRestrictions: { country: "np" } }}
+                  >
+                    <Input placeholder="Search location..." {...field} className="h-12 border-blue-100" />
+                  </Autocomplete>
+                  <FormDescription>Detected: <b>{measurementSystem} System</b></FormDescription>
+                </FormItem>
+              )}
+            />
+            <div className="h-[400px] w-full rounded-lg overflow-hidden border">
+              <GoogleMap 
+                onLoad={(m) => { mapRef.current = m }} 
+                mapContainerStyle={{ width: '100%', height: '100%' }} 
+                center={form.watch("coordinates")} 
+                zoom={15}
+              >
+                <Marker 
+                  position={form.watch("coordinates")} 
+                  draggable={true} 
+                  onDragEnd={(e) => {
+                    const lat = e.latLng?.lat(); const lng = e.latLng?.lng();
+                    if (lat && lng) {
+                      form.setValue("coordinates", { lat, lng });
+                      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+                      debounceTimer.current = setTimeout(() => updateLocationData(lat, lng), 500);
+                    }
+                  }} 
+                />
+              </GoogleMap>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* SECTION 3: SIZE */}
+            <div className="p-6 bg-white border rounded-xl shadow-sm space-y-6">
+              <h2 className="text-xl font-bold border-b pb-2">3. Land Area</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {measurementSystem === 'HILLY' ? (
+                  ['ropani', 'aana', 'paisa', 'daam'].map((unit) => (
+                    <FormField key={unit} control={form.control} name={`size.${unit}` as any} render={({ field }) => (
+                      <FormItem><FormLabel className="capitalize">{unit}</FormLabel><Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormItem>
+                    )} />
+                  ))
+                ) : (
+                  ['bigha', 'kattha', 'dhur'].map((unit) => (
+                    <FormField key={unit} control={form.control} name={`size.${unit}` as any} render={({ field }) => (
+                      <FormItem><FormLabel className="capitalize">{unit}</FormLabel><Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormItem>
+                    )} />
+                  ))
                 )}
-              />
-
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Kathmandu, Nepal" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="space-y-4">
-                <FormLabel>Measurement System</FormLabel>
-                <Select
-                  value={measurementSystem}
-                  onValueChange={handleSystemChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select measurement system" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="HILLY">Hilly Region (Ropani/Aana/Paisa/Daam)</SelectItem>
-                    <SelectItem value="TERAI">Terai Region (Bigha/Kattha/Dhur)</SelectItem>
-                    <SelectItem value="FLAT">Simple Units (Sq Ft/Sq Mtr)</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
+            </div>
 
-              {measurementSystem === 'HILLY' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="size.ropani"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ropani</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="size.aana"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Aana (0-15.99)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="size.paisa"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Paisa (0-3.99)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="size.daam"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Daam (0-3.99)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-
-              {measurementSystem === 'TERAI' && (
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="size.bigha"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bigha</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="size.kattha"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Kattha (0-19.99)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="size.dhur"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Dhur (0-19.99)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-
-              {measurementSystem === 'FLAT' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="size.value"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Size</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="size.unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Unit</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select unit" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="SQ_FT">Square Feet</SelectItem>
-                            <SelectItem value="SQ_MTR">Square Meter</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-
+            {/* SECTION 4: SIMPLE PRICING */}
+            <div className="p-6 bg-white border rounded-xl shadow-sm space-y-6">
+              <h2 className="text-xl font-bold border-b pb-2">4. Pricing</h2>
               <FormField
                 control={form.control}
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price per Month (NPR)</FormLabel>
+                    <FormLabel>Total Price (NPR)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      <Input 
+                        type="number" 
+                        placeholder="e.g., 5000000" 
+                        {...field} 
+                        onChange={e => field.onChange(Number(e.target.value))} 
                       />
                     </FormControl>
+                    <FormDescription>Enter the total valuation for the entire plot.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </div>
+          </div>
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe your land, its features, and suitability for farming"
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="bg-gray-50 p-4 rounded">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">
-                  Hero Image <span className="text-red-500">*</span>
-                </h3>
-                <FileUploadDemo
-                  files={heroFile ? [heroFile] : []}
-                  onFilesChange={(files) => setHeroFile(files[0] || null)}
-                  maxFiles={1}
-                />
+          {/* SECTION 5: MEDIA */}
+          <div className="p-6 bg-white border rounded-xl shadow-sm space-y-8">
+            <h2 className="text-xl font-bold border-b pb-2">5. Photos & Lalpurja</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <FormLabel>Main Photo *</FormLabel>
+                <FileUploadDemo files={heroFile ? [heroFile] : []} onFilesChange={f => setHeroFile(f[0] || null)} maxFiles={1} />
               </div>
-
-              <div className="bg-gray-50 p-4 rounded">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">Gallery Images</h3>
-                <FileUploadDemo
-                  files={files}
-                  onFilesChange={setFiles}
-                  maxFiles={5}
-                />
+              <div className="space-y-2">
+                <FormLabel>Other Photos (Max 5)</FormLabel>
+                <FileUploadDemo files={files} onFilesChange={setFiles} maxFiles={5} />
               </div>
-
-              <div className="bg-gray-50 p-4 rounded">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">Lalpurja Document</h3>
-                <FileUploadDemo
-                  files={lalpurjaFile ? [lalpurjaFile] : []}
-                  onFilesChange={(files) => setLalpurjaFile(files[0] || null)}
-                  maxFiles={1}
-                />
+              <div className="space-y-2">
+                <FormLabel>Lalpurja *</FormLabel>
+                <FileUploadDemo files={lalpurjaFile ? [lalpurjaFile] : []} onFilesChange={f => setLalpurjaFile(f[0] || null)} maxFiles={1} />
               </div>
+            </div>
+          </div>
 
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isUploading || isUploadingHero || publishLand.isPending}
-                >
-                  {publishLand.isPending ? 'Publishing...' : 'Publish Land'}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
-      </div>
+          {/* SECTION 6: DESCRIPTION */}
+          <div className="p-6 bg-white border rounded-xl shadow-sm space-y-6">
+            <h2 className="text-xl font-bold border-b pb-2">6. Description</h2>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl><Textarea className="min-h-[150px]" placeholder="Road access, water, electricity, nearby landmarks..." {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-xl font-bold shadow-xl"
+            disabled={isUploading || isUploadingHero || publishLand.isPending}
+          >
+            {publishLand.isPending ? "Publishing..." : "🚀 Post Land Listing"}
+          </Button>
+
+        </form>
+      </Form>
     </div>
   )
 }

@@ -29,7 +29,7 @@ export const publishLandInputSchema = z.object({
   size: LandSizeSchema,
   price: z.number().positive("Price must be greater than 0"),
   description: z.string().min(10, "Please provide a more detailed description"),
-  landpic: z.string().url("Hero image URL is required"),
+  landpic: z.string().url("Display image URL is required"),
   morelandpic: z.array(z.string().url()).default([]),
   lalpurjaUrl: z.string().url().optional().nullable(),
 })
