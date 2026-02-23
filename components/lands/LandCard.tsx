@@ -42,7 +42,7 @@ export function LandCard({ land }: { land: any }) {
                     </div>
                     <div className="p-3 bg-slate-50 rounded-2xl text-right">
                         <span className="block text-[9px] uppercase font-bold text-slate-400 tracking-wider">Area</span>
-                        <span className="font-bold text-slate-900 font-mono">{formatNum(land.sizeInSqmeter)} ft²</span>
+                        <span className="font-bold text-slate-900 font-mono">{formatNum(land.sizeInSqmeter)}m²</span>
                     </div>
                 </div>
             </CardContent>

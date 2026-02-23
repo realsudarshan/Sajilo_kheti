@@ -39,7 +39,8 @@ export function FileUploadDemo({ files, onFilesChange, maxFiles = 2 }: FileUploa
       onValueChange={onFilesChange}
       onFileReject={onFileReject}
       multiple={maxFiles > 1}
-    >
+     accept="image/png, image/jpeg, image/jpg, image/webp"
+        >
       <FileUploadDropzone>
         <div className="flex flex-col items-center gap-1 text-center">
           <div className="flex items-center justify-center rounded-full border p-2.5">

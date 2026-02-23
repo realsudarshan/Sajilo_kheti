@@ -62,7 +62,7 @@ export default function LoginPage() {
     const router = useRouter();
 
     const [showPassword, setShowPassword] = useState(false);
-    const [serverError, setServerError] = useState("");
+    const [serverError, setServerError] = useState<string | null>(null);
     const [ssoLoading, setSsoLoading] = useState(false);
 
     const form = useForm<LoginValues>({
@@ -71,22 +71,28 @@ export default function LoginPage() {
     });
 
     // ── Google SSO ────────────────────────────────────────────────────────────
-    const signInWithGoogle = async () => {
-        if (!isLoaded) return;
-        setSsoLoading(true);
-        try {
-            await signIn.authenticateWithRedirect({
-                strategy: "oauth_google",
-                redirectUrl: "/sso-callback",
-                redirectUrlComplete: "/dashboard",
-            });
-        } catch (err: unknown) {
-            const clerkError = err as { errors?: { message: string }[] };
-            setServerError(clerkError.errors?.[0]?.message ?? "Google sign-in failed.");
-            setSsoLoading(false);
-        }
-    };
+const signInWithGoogle = async () => {
+    if (!isLoaded) return;
 
+    // 1. Prepare the UI
+    setSsoLoading(true);
+    setServerError(null); // Clear the "old" error from the previous click
+    
+    try {
+        await signIn.authenticateWithRedirect({
+            strategy: "oauth_google",
+            redirectUrl: "/sso-callback",
+            redirectUrlComplete: "/dashboard",
+            
+            oidcPrompt: "select_account", 
+        });
+    } catch (err: unknown) {
+        // 2. Only if THIS attempt fails, show a NEW error
+        const clerkError = err as { errors?: { message: string }[] };
+        setServerError(clerkError.errors?.[0]?.message ?? "Google sign-in failed.");
+        setSsoLoading(false);
+    }
+};
     // ── Email + Password ──────────────────────────────────────────────────────
     const onSubmit = async (values: LoginValues) => {
         if (!isLoaded) return;

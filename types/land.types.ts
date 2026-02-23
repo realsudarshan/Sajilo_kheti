@@ -23,6 +23,5 @@ export type Land = {
   lalpurjaUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  // If 'size' and 'ownername' aren't in the error list, 
-  // they might be named differently (e.g., 'area' or 'owner.name')
+ 
 };
