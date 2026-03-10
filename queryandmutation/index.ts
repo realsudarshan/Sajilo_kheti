@@ -93,3 +93,9 @@ export const useGetAllApplications = (filters: {
 // ============================================================================
 export const usePayEscrow = () => trpc.escrow.PayEscrow.useMutation();
 export const useVerifyMalpotPapers = () => trpc.escrow.VerifyMalpotPapers.useMutation();
+
+export const useGetMyAcceptedApplications = (filters: {
+    landId?: string;
+} = {}) => {
+    return trpc.lease.GetMyAcceptedApplications.useQuery(filters);
+};

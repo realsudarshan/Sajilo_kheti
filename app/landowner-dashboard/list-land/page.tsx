@@ -144,7 +144,7 @@ export default function ListLandPage() {
         ...values,
         landpic: heroRes[0].url,
         morelandpic: galleryUrls || [],
-        lalpurjaUrl: lalpurjaUrl,
+        lalpurjaUrl: lalpurjaUrl as string,
       })
 
       toast.success('Land published successfully!');
@@ -307,10 +307,10 @@ export default function ListLandPage() {
 
           <Button 
             type="submit" 
-            className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-xl font-bold shadow-xl"
+            className="w-full h-16 bg-green-600 hover:bg-green-700 text-xl font-bold shadow-xl"
             disabled={isUploading || isUploadingHero || publishLand.isPending}
           >
-            {publishLand.isPending ? "Publishing..." : "🚀 Post Land Listing"}
+            {publishLand.isPending ? "Publishing..." : " Post Land Listing"}
           </Button>
 
         </form>

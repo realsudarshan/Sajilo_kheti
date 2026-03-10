@@ -1,10 +1,14 @@
 "use client";
 
+import { useEffect, useState, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
+import Tesseract from "tesseract.js";
+import * as faceapi from "face-api.js";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
 
 // UI Components
 import { FileUploadDemo } from "@/components/landowner/uploadfile";
@@ -22,142 +26,178 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Schema and Hooks
+// Hooks & Schema
 import { useUploadThing } from "@/lib/useUploadthings";
 import { VerifyOwnerSchema } from "@/lib/zodschema/schema";
 import { useGetKycDetails, useUpgradeRequest } from "@/queryandmutation/index";
+
+const libraries: "places"[] = ["places"];
+
 export default function VerifyLandowner() {
-  const { data: kycDetails, isLoading: isKycLoading } = useGetKycDetails();
-  const upgradeRequest = useUpgradeRequest();
+  const queryClient = useQueryClient();
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
-  const { startUpload: startCitizenshipUpload } = useUploadThing("citizenship");
-  const { startUpload: startSelfieUpload } = useUploadThing("selfie");
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
+    libraries,
+  });
 
+  const [citizenshipResetKey, setCitizenshipResetKey] = useState(0);
+  const [selfieResetKey, setSelfieResetKey] = useState(0);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
   const [citizenshipFile, setCitizenshipFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const { data: kycDetails, isLoading: isKycLoading } = useGetKycDetails();
+  const upgradeRequest = useUpgradeRequest();
+  const { startUpload: startCitizenshipUpload } = useUploadThing("citizenship");
+  const { startUpload: startSelfieUpload } = useUploadThing("selfie");
+
   const form = useForm<z.infer<typeof VerifyOwnerSchema>>({
     resolver: zodResolver(VerifyOwnerSchema),
+    mode: "onChange",
     defaultValues: {
       FullName: "",
       Adress: "",
+      citizenshipno: "",
       frontcitizenshippic: "",
       backcitizenshippic: "",
-      citizenshipno: "",
     },
   });
 
-  async function onSubmit(values: z.infer<typeof VerifyOwnerSchema>) {
-    if (!citizenshipFile || !selfieFile) {
-      toast.error("Please provide both the citizenship photo and the selfie.");
-      return;
+  // Load Face API Models
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+        setModelsLoaded(true);
+      } catch (error) {
+        console.error("AI Model load error:", error);
+      }
+    };
+    loadModels();
+  }, []);
+
+  // OCR Logic
+  const validateCitizenship = async (file: File) => {
+    const toastId = toast.loading("Analyzing Citizenship...");
+    try {
+      const { data: { text } } = await Tesseract.recognize(file, "eng+nep");
+      const isNepali = ["नेपाल", "CITIZENSHIP", "NEPAL"].some(kw => text.toUpperCase().includes(kw));
+
+      if (isNepali) {
+        const idMatch = text.match(/\d{2}-\d{2}-\d{2}-\d{4,5}/) || text.match(/(\d+[\/\-]\d+[\/\-]\d+[\/\-]\d+)/);
+        if (idMatch) {
+          const cleanId = idMatch[0].replace(/\//g, "-");
+          form.setValue("citizenshipno", cleanId, { shouldValidate: true });
+        }
+        form.setValue("frontcitizenshippic", file.name, { shouldValidate: true });
+        form.setValue("backcitizenshippic", "present", { shouldValidate: true });
+        setCitizenshipFile(file);
+        toast.success("ID Recognized", { id: toastId });
+      } else {
+        throw new Error("Invalid ID format");
+      }
+    } catch (e) {
+      setCitizenshipFile(null);
+      setCitizenshipResetKey(prev => prev + 1);
+      toast.error("OCR Failed or Invalid ID", { id: toastId });
     }
+  };
 
+  // Face Detection Logic
+  const validateSelfie = async (file: File) => {
+    if (!modelsLoaded) return toast.error("AI is loading...");
+    const toastId = toast.loading("Checking face...");
+    try {
+      const img = await faceapi.bufferToImage(file);
+      const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions());
+      if (detection) {
+        setSelfieFile(file);
+        toast.success("Face verified", { id: toastId });
+      } else {
+        throw new Error("No face detected");
+      }
+    } catch (e) {
+      setSelfieFile(null);
+      setSelfieResetKey(prev => prev + 1);
+      toast.error("Face detection failed", { id: toastId });
+    }
+  };
+
+  // Autocomplete Specific Handler
+  const onPlaceChanged = () => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      
+      // 1. Get Place Name (e.g., "Kalanki" or "Tribhuvan University")
+      const placeName = place.name || "";
+
+      // 2. Extract District (administrative_area_level_2 in Nepal)
+      let district = "";
+      if (place.address_components) {
+        const districtComp = place.address_components.find(c => 
+          c.types.includes("administrative_area_level_2")
+        );
+        district = districtComp?.long_name.replace(" District", "") || "";
+      }
+
+      // 3. Format: "Place, District"
+      const formatted = district ? `${placeName}, ${district}` : placeName;
+      
+      if (formatted) {
+        form.setValue("Adress", formatted, { shouldValidate: true });
+      }
+    }
+  };
+
+  async function onSubmit(values: z.infer<typeof VerifyOwnerSchema>) {
+    if (!citizenshipFile || !selfieFile) return toast.error("Upload all images.");
     setIsProcessing(true);
-    const loadingToast = toast.loading("Uploading documents and saving...");
-
+    const loadingToast = toast.loading("Uploading...");
     try {
       const [czRes, selfieRes] = await Promise.all([
         startCitizenshipUpload([citizenshipFile]),
-        startSelfieUpload([selfieFile]),
+        startSelfieUpload([selfieFile])
       ]);
-
-      if (!czRes || !selfieRes) {
-        throw new Error("File upload failed. Please try again.");
-      }
-
+      if (!czRes || !selfieRes) throw new Error("Upload failed");
       await upgradeRequest.mutateAsync({
         citizenshipNumber: values.citizenshipno,
-        documentUrl: czRes[0].url,
-        selfieUrl: selfieRes[0].url,
+        documentUrl: czRes[0].ufsUrl || czRes[0].url,
+        selfieUrl: selfieRes[0].ufsUrl || selfieRes[0].url,
       });
-
-      toast.success("KYC Verification request submitted!", { id: loadingToast });
-
-      form.reset();
-      setCitizenshipFile(null);
-      setSelfieFile(null);
-      // Ideally trigger a refetch here or invalidate query
-      window.location.reload();
-
-    } catch (error: any) {
-      console.error("Submission Error:", error);
-      toast.error(error.message || "Something went wrong", { id: loadingToast });
+      toast.success("Submitted!", { id: loadingToast });
+      queryClient.invalidateQueries({ queryKey: ["kycDetails"] });
+    } catch (e: any) {
+      toast.error(e.message || "Failed", { id: loadingToast });
     } finally {
       setIsProcessing(false);
     }
   }
 
-  if (isKycLoading) {
+  if (isKycLoading) return <div className="p-10 text-center"><Skeleton className="h-40 w-full" /></div>;
+
+  if (kycDetails) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <Skeleton className="h-12 w-48 mb-6" />
-        <Skeleton className="h-[400px] w-full rounded-lg" />
+      <div className="max-w-2xl mx-auto p-6 mt-10">
+        <Card>
+          <CardHeader><CardTitle>Status: <Badge>{kycDetails.status}</Badge></CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div><p className="text-sm text-gray-500">Address</p><p className="font-medium">{kycDetails.Adress || "N/A"}</p></div>
+            <div className="grid grid-cols-2 gap-4">
+              <img src={kycDetails.documentUrl} alt="ID" className="rounded border aspect-video object-cover" />
+              <img src={kycDetails.selfieUrl} alt="Selfie" className="rounded border aspect-video object-cover" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (kycDetails) {
-    return (
-      <div className="max-w-2xl mx-auto p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex justify-between items-center">
-              KYC Application Status
-              <Badge variant={kycDetails.status === 'APPROVED' ? 'default' : kycDetails.status === 'REJECTED' ? 'destructive' : 'secondary'}>
-                {kycDetails.status}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Citizenship Number</p>
-                <p>{kycDetails.citizenshipNumber}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Submitted At</p>
-                {/* Assuming created_at or updated_at isn't in returned object currently, skipping date */}
-                <p>Recent</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div className="border rounded-lg p-2">
-                <p className="text-sm font-medium mb-2">Document</p>
-                <img src={kycDetails.documentUrl} alt="Citizenship" className="w-full h-48 object-cover rounded" />
-              </div>
-              {kycDetails.selfieUrl && (
-                <div className="border rounded-lg p-2">
-                  <p className="text-sm font-medium mb-2">Selfie</p>
-                  <img src={kycDetails.selfieUrl} alt="Selfie" className="w-full h-48 object-cover rounded" />
-                </div>
-              )}
-            </div>
-
-            {kycDetails.status === "REJECTED" && (
-              <div className="bg-red-50 p-4 rounded-md text-red-800 mt-4">
-                <p className="font-semibold">Your application was rejected.</p>
-                <p className="text-sm">Please contact support or re-apply if allowed.</p>
-              </div>
-            )}
-
-            {kycDetails.status === "PENDING" && (
-              <div className="bg-blue-50 p-4 rounded-md text-blue-800 mt-4">
-                <p>Your application is currently under review. This process normally takes 24-48 hours.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-sm border">
-      <h2 className="text-2xl font-bold mb-6">Verify Identity</h2>
-
+    <div className="max-w-2xl mx-auto p-8 bg-white rounded-2xl border mt-10 shadow-sm">
+      <h2 className="text-2xl font-bold mb-6">Identity Verification</h2>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -166,9 +206,7 @@ export default function VerifyLandowner() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
+                <FormControl><Input placeholder="Name as per citizenship" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -180,58 +218,65 @@ export default function VerifyLandowner() {
               name="Adress"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>Address (Place, District)</FormLabel>
                   <FormControl>
-                    <Input placeholder="City, Country" {...field} />
+                    {isLoaded ? (
+                      <Autocomplete
+                        onLoad={(ac) => { autocompleteRef.current = ac }}
+                        onPlaceChanged={onPlaceChanged}
+                        options={{
+                          componentRestrictions: { country: "np" },
+                          types: ["geocode", "establishment"], // Essential for Nepal landmarks
+                        }}
+                      >
+                        <Input 
+                          placeholder="Search landmark or city..." 
+                          {...field} 
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                        />
+                      </Autocomplete>
+                    ) : <Skeleton className="h-10 w-full" />}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="citizenshipno"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Citizenship Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="ID Number" {...field} />
-                  </FormControl>
+                  <FormLabel>Citizenship No.</FormLabel>
+                  <FormControl><Input placeholder="00-00-00-00000" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
 
-          <hr className="my-4" />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
             <FormItem>
-              <FormLabel className="font-semibold">Citizenship (Front)</FormLabel>
+              <FormLabel>Citizenship (Front)</FormLabel>
               <FileUploadDemo
+                key={`cz-${citizenshipResetKey}`}
                 files={citizenshipFile ? [citizenshipFile] : []}
-                onFilesChange={(files) => setCitizenshipFile(files[0] || null)}
+                onFilesChange={(f) => { if (f.length > 0) validateCitizenship(f[0]); else setCitizenshipFile(null); }}
                 maxFiles={1}
               />
             </FormItem>
-
             <FormItem>
-              <FormLabel className="font-semibold">Selfie with ID</FormLabel>
+              <FormLabel>Selfie with ID</FormLabel>
               <FileUploadDemo
+                key={`selfie-${selfieResetKey}`}
                 files={selfieFile ? [selfieFile] : []}
-                onFilesChange={(files) => setSelfieFile(files[0] || null)}
+                onFilesChange={(f) => { if (f.length > 0) validateSelfie(f[0]); else setSelfieFile(null); }}
                 maxFiles={1}
               />
             </FormItem>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full h-12 text-lg"
-            disabled={isProcessing || upgradeRequest.isPending}
-          >
-            {isProcessing ? "Processing..." : "Submit for Verification"}
+          <Button type="submit" className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold" disabled={isProcessing}>
+            {isProcessing ? "Analyzing..." : "Submit Application"}
           </Button>
         </form>
       </Form>

@@ -44,7 +44,12 @@ export const VerifyOwnerSchema = z.object({
   Adress: z.string(),
   frontcitizenshippic: z.string(),
   backcitizenshippic: z.string(),
-  citizenshipno: z.string()
+  citizenshipno: z.string().regex(
+  /^\d{2}-\d{2}-\d{2}-\d{4,5}$/,
+  {
+    message: "Invalid format. Expected XX-XX-XX-XXXX or XX-XX-XX-XXXXX (e.g., 12-01-70-00123)",
+  }
+)
 })
 
 
