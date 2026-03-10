@@ -75,48 +75,53 @@ export default function MyLandsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {myLands.map((land) => (
             <Card key={land.id} className="group overflow-hidden border-slate-200 transition-all hover:shadow-xl hover:border-blue-300">
-              <div className="relative aspect-video overflow-hidden">
-                <img 
-                  src={land.heroImageUrl || "/placeholder.jpg"} 
-                  alt={land.title} 
-                  className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                />
-                <Badge 
-                  className={`absolute top-3 right-3 border ${statusStyles[land.status] || ""}`}
-                  variant="outline"
-                >
-                  {land.status}
-                </Badge>
-              </div>
-
-              <CardHeader className="p-5 pb-2">
-                <div className="flex items-center text-xs font-semibold text-blue-600 mb-1">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {land.location}
-                </div>
-                <CardTitle className="text-xl line-clamp-1">{land.title}</CardTitle>
-              </CardHeader>
-
-              <CardContent className="p-5 pt-0 space-y-4">
-                <div className="flex justify-between items-end">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Price/Month</span>
-                    <span className="text-lg font-bold text-slate-900">{formatPrice(land.pricePerMonth)}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-sm font-medium bg-slate-100 px-2 py-1 rounded">
-                    <Maximize2 className="h-4 w-4 text-slate-500" />
-                    <span>{land.sizeInSqmeter.toFixed(2)} m²</span>
-                  </div>
+              
+              {/* Clicking the main area navigates to the land's application page */}
+              <Link href={`/my-lands/${land.id}/applications`} className="block">
+                <div className="relative aspect-video overflow-hidden">
+                  <img 
+                    src={land.heroImageUrl || "/placeholder.jpg"} 
+                    alt={land.title} 
+                    className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <Badge 
+                    className={`absolute top-3 right-3 border ${statusStyles[land.status] || ""}`}
+                    variant="outline"
+                  >
+                    {land.status}
+                  </Badge>
                 </div>
 
-                {land.status === "REJECTED" && (
-                  <div className="flex items-start gap-2 p-3 bg-red-50 rounded-md border border-red-100 text-red-600 text-xs">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <p>Verification failed. Please check your Lalpurja document or contact support.</p>
+                <CardHeader className="p-5 pb-2">
+                  <div className="flex items-center text-xs font-semibold text-blue-600 mb-1">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {land.location}
                   </div>
-                )}
-              </CardContent>
+                  <CardTitle className="text-xl line-clamp-1">{land.title}</CardTitle>
+                </CardHeader>
 
+                <CardContent className="p-5 pt-0 space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Price/Month</span>
+                      <span className="text-lg font-bold text-slate-900">{formatPrice(land.pricePerMonth)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium bg-slate-100 px-2 py-1 rounded">
+                      <Maximize2 className="h-4 w-4 text-slate-500" />
+                      <span>{land.sizeInSqmeter.toFixed(2)} m²</span>
+                    </div>
+                  </div>
+
+                  {land.status === "REJECTED" && (
+                    <div className="flex items-start gap-2 p-3 bg-red-50 rounded-md border border-red-100 text-red-600 text-xs">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <p>Verification failed. Please check your Lalpurja document or contact support.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Link>
+
+              {/* Action Footer: These are separate buttons so they don't trigger the application link */}
               <CardFooter className="p-4 border-t bg-slate-50/50 flex gap-3">
                 <Button variant="outline" size="sm" className="flex-1 bg-white" asChild>
                   <Link href={`/landowner-dashboard/edit/${land.id}`}>

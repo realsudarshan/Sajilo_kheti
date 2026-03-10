@@ -3,10 +3,11 @@ import { UploadThingError } from "uploadthing/server";
 
 const f = createUploadthing();
 
-const auth = (req: Request) => ({ id: "fakeId" }); // Fake auth function
+// PRO TIP: Replace this with your actual session logic (e.g., const session = await getServerSession())
+const auth = (req: Request) => ({ id: "user_29384" }); 
 
 export const ourFileRouter = {
-  // FileRouter for uploading many images
+  // 1. General Image Uploader (Land Gallery)
   imageUploader: f({
     image: {
       maxFileSize: "4MB",
@@ -19,12 +20,12 @@ export const ourFileRouter = {
       return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Multiple images upload complete for userId:", metadata.userId);
+      console.log("Upload complete for userId:", metadata.userId);
       console.log("file url", file.ufsUrl);
       return { uploadedBy: metadata.userId };
     }),
 
-  // FileRouter for uploading single image
+  // 2. Profile Photo Uploader
   photoUploader: f({
     image: {
       maxFileSize: "8MB",
@@ -37,12 +38,11 @@ export const ourFileRouter = {
       return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Single image upload complete for userId:", metadata.userId);
       console.log("file url", file.ufsUrl);
       return { uploadedBy: metadata.userId };
     }),
 
-  // Renamed from CitizenshipfrontpicRouter to citizenship
+  // 3. Citizenship Document
   citizenship: f({
     image: {
       maxFileSize: "8MB",
@@ -55,12 +55,10 @@ export const ourFileRouter = {
       return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Citizenship upload complete for userId:", metadata.userId);
-      console.log("file url", file.ufsUrl);
       return { uploadedBy: metadata.userId };
     }),
 
-  // Renamed from CitizenshipbackpicRouter to selfie
+  // 4. Verification Selfie
   selfie: f({
     image: {
       maxFileSize: "8MB",
@@ -73,10 +71,28 @@ export const ourFileRouter = {
       return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Selfie upload complete for userId:", metadata.userId);
-      console.log("file url", file.ufsUrl);
       return { uploadedBy: metadata.userId };
     }),
+
+  /**
+   * 5. MALPOT PAPER UPLOADER (New)
+   * Specifically for legal agreements between Landowner and Leaser.
+   * Supports both Image and PDF formats for official scans.
+   */
+  malpotPaperUploader: f({
+    image: { maxFileSize: "16MB", maxFileCount: 1 },
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+  })
+    .middleware(async ({ req }) => {
+      const user = await auth(req);
+      if (!user) throw new UploadThingError("Unauthorized");
+      return { userId: user.id };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Legal doc upload complete:", file.ufsUrl);
+      return { uploadedBy: metadata.userId, url: file.ufsUrl };
+    }),
+
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;

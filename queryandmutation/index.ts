@@ -99,3 +99,45 @@ export const useGetMyAcceptedApplications = (filters: {
 } = {}) => {
     return trpc.lease.GetMyAcceptedApplications.useQuery(filters);
 };
+//===========================================================================
+export const useGetMyEscrows = () => trpc.escrow.GetMyEscrows.useQuery({});
+export const useGetMyOwnerEscrows = () => trpc.escrow.GetMyOwnerEscrows.useQuery({});
+
+export const useGetEscrowById = (id: string) => {
+  return trpc.escrow.GetEscrowById.useQuery(
+    { id },
+    {
+      enabled: !!id,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    }
+  );
+};
+export const useSubmitMalpotPapers = () => trpc.escrow.SubmitMalpotPapers.useMutation();
+// ============================================================================
+// ESCROW HOOKS
+// ============================================================================
+
+/**
+ * Fetches all escrows that require Admin review (Legal papers uploaded)
+ * and previously handled escrows (History).
+ */
+export const useGetAllEscrowsForAdmin = () => {
+    return trpc.escrow.GetAllEscrowsForAdmin.useQuery();
+};
+
+/**
+ * Admin mutation to either RELEASE funds (APPROVE) or reset the 
+ * document upload process (REJECT).
+ */
+export const useVerifyLegalDocuments = () => {
+    const utils = trpc.useUtils();
+    return trpc.escrow.VerifyLegalDocuments.useMutation({
+        onSuccess: () => {
+            // Refresh the admin list immediately
+            utils.escrow.GetAllEscrowsForAdmin.invalidate();
+            // Optional: Invalidate specific escrow if you have a detail view
+            utils.escrow.GetEscrowById.invalidate();
+        }
+    });
+};
