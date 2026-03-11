@@ -50,16 +50,30 @@ export default function ChatWidget({ channelId }: ChatWidgetProps) {
       try {
         // Get token from our API route
         const res  = await fetch('/api/chat/token');
+        console.log('[ChatWidget] /api/chat/token status:', res.status);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? 'Token fetch failed');
+        if (!res.ok) {
+          console.error('[ChatWidget] Token fetch failed:', data);
+          throw new Error(data.error ?? 'Token fetch failed');
+        }
 
         const { token, userId, name, image, apiKey } = data;
+        console.log('[ChatWidget] Token payload:', {
+          hasToken: !!token,
+          userId,
+          hasApiKey: !!apiKey,
+        });
 
-        const streamClient = StreamChat.getInstance(apiKey);
+        // Use a dedicated client instance so it doesn't share connection
+        // state with other chat components.
+        const streamClient = new StreamChat(apiKey);
 
+        console.log('[ChatWidget] Calling connectUser for', userId);
         await streamClient.connectUser({ id: userId, name, image }, token);
+        console.log('[ChatWidget] connectUser success for', userId);
 
         const ch = streamClient.channel('messaging', channelId);
+        console.log('[ChatWidget] Watching channel', channelId);
         await ch.watch();
 
         if (cancelled) {
@@ -72,6 +86,14 @@ export default function ChatWidget({ channelId }: ChatWidgetProps) {
         setChannel(ch);
 
         // Track unread when minimized
+        streamClient.on('connection.changed', (e: any) => {
+          console.log('[ChatWidget] connection.changed:', {
+            online: e.online,
+            type: e.type,
+            eventType: (e as any).eventType,
+          });
+        });
+
         streamClient.on('message.new', (event) => {
           if (event.channel_id === channelId) {
             setUnread((n) => n + 1);

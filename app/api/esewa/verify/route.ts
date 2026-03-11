@@ -83,8 +83,10 @@ export async function POST(req: NextRequest) {
     let ownerId: string | null = null;
 
     try {
+      // Use the REST wrapper path that actually exists on the Express backend:
+      // GET /api/lease/application/{applicationId}
       const appRes = await fetch(
-        `${BACKEND_URL}/api/lease/GetApplicationById?applicationId=${applicationId}`,
+        `${BACKEND_URL}/api/lease/application/${applicationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (appRes.ok) {
@@ -156,14 +158,20 @@ export async function POST(req: NextRequest) {
         throw new Error('ownerId could not be resolved — cannot create chat channel');
       }
 
+      // IMPORTANT: Stream user IDs must match the IDs used by /api/chat/token.
+      // That route prefixes Clerk IDs with "sk_" to avoid conflicts and deletions,
+      // so we mirror the exact same convention here.
+      const streamOwnerId  = `sk_${ownerId}`;
+      const streamLeaserId = `sk_${leaserId}`;
+
       await streamServer.upsertUsers([
-        { id: ownerId,  name: 'Land Owner', role: 'admin' } as any,
-        { id: leaserId, name: 'Leaser',     role: 'admin' } as any,
+        { id: streamOwnerId,  name: 'Land Owner', role: 'admin' } as any,
+        { id: streamLeaserId, name: 'Leaser',     role: 'admin' } as any,
       ]);
 
       const channel = streamServer.channel('messaging', channelId, {
-        created_by_id: leaserId,
-        members:       [ownerId, leaserId],
+        created_by_id: streamLeaserId,
+        members:       [streamOwnerId, streamLeaserId],
       } as any);
 
       await channel.create();
@@ -172,7 +180,7 @@ export async function POST(req: NextRequest) {
         text: IS_DEV && mock
           ? '🧪 Dev mock payment confirmed! Chat channel is active for testing.'
           : '🎉 Escrow payment confirmed! You can now discuss the lease agreement and arrange to visit the Malpot Karyalaya together.',
-        user_id: leaserId,
+        user_id: streamLeaserId,
       });
 
       console.log('[esewa/verify] Stream channel created:', channelId);

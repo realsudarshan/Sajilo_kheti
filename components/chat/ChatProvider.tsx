@@ -84,15 +84,30 @@ function ChatManager({
     let cancelled = false;
 
     async function connect() {
+      console.log('[ChatProvider] connect() start. chats length =', chats.length);
       setConnecting(true);
       try {
         const res  = await fetch("/api/chat/token");
+        console.log("[ChatProvider] /api/chat/token status:", res.status);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Token fetch failed");
+        if (!res.ok) {
+          console.error("[ChatProvider] Token fetch failed:", data);
+          throw new Error(data.error ?? "Token fetch failed");
+        }
 
         const { token, userId, name, image, apiKey } = data;
-        const sc = StreamChat.getInstance(apiKey);
+        console.log("[ChatProvider] Token payload:", {
+          hasToken: !!token,
+          userId,
+          hasApiKey: !!apiKey,
+        });
+
+        // Use a dedicated client instance for this provider so that
+        // other widgets disconnecting their clients do not affect this one.
+        const sc = new StreamChat(apiKey);
+        console.log("[ChatProvider] Calling connectUser for", userId);
         await sc.connectUser({ id: userId, name, image }, token);
+        console.log("[ChatProvider] connectUser success for", userId);
 
         if (cancelled) { await sc.disconnectUser(); return; }
 
@@ -102,10 +117,19 @@ function ChatManager({
         const map: Record<string, StreamChannel> = {};
         for (const chat of chats) {
           const ch = sc.channel("messaging", chat.channelId);
+          console.log("[ChatProvider] Watching channel", chat.channelId);
           await ch.watch();
           map[chat.channelId] = ch;
         }
         setChannels(map);
+
+        sc.on("connection.changed", (e: any) => {
+          console.log("[ChatProvider] connection.changed:", {
+            online: e.online,
+            type: e.type,
+            eventType: (e as any).eventType,
+          });
+        });
 
         sc.on("message.new", (event) => {
           const cid = event.channel_id;
@@ -115,6 +139,7 @@ function ChatManager({
           }
         });
       } catch (err: any) {
+        console.error("[ChatProvider] connect() error:", err);
         if (!cancelled) setError(err?.message ?? "Could not connect to chat");
       } finally {
         if (!cancelled) setConnecting(false);
