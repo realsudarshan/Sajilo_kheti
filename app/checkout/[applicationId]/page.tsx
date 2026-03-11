@@ -25,6 +25,7 @@ interface EsewaFormFields {
 export default function CheckoutPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const router            = useRouter();
+  
 
   const { data, isLoading } = useGetMyAcceptedApplications();
   const application = data?.applications.find((a) => a.id === applicationId);
@@ -35,7 +36,9 @@ export default function CheckoutPage() {
   const [error,     setError]     = useState('');
 
   const formRef = useRef<HTMLFormElement>(null);
-
+const handleDevBypass = async () => {
+  await router.push(`/checkout/esewa-success?mock=true&applicationId=${applicationId}`)
+}
   const preparePayment = async () => {
     if (!application) return;
     setPreparing(true);
@@ -149,7 +152,7 @@ export default function CheckoutPage() {
 
             {/* Pay button */}
             <Button
-              onClick={preparePayment}
+              onClick={process.env.eSewaBypass ? preparePayment : handleDevBypass}
               disabled={preparing || !!fields}
               className="w-full h-14 rounded-2xl bg-[#60BB46] hover:bg-[#4da336] text-white font-bold text-base shadow-lg"
             >
