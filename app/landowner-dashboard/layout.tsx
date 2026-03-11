@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton, SignedIn, useClerk, useUser } from "@clerk/nextjs";
-import ChatWidget from "@/components/chat/Chatwidget";
+import { ChatProvider } from "@/components/chat/ChatProvider";
 import {
   LayoutDashboard,
   MapPin,
@@ -225,9 +225,10 @@ export default function LandownerLayout({
       </nav>
 
       {/* ── Main content ────────────────────────────────────── */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 pb-16 lg:pb-0 min-h-screen">
+      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 pb-16 lg:pb-0 min-h-screen relative">
         {children}
-        <ChatWidget channelId="general-support" />
+        {/* Floating lease chat for the landowner */}
+        <ChatProvider role="owner" />
       </main>
 
 
