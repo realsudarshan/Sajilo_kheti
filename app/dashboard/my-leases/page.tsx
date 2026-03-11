@@ -1,23 +1,26 @@
-// dashboard/my-leases/page.tsx
+// FILE: app/dashboard/my-leases/page.tsx
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useGetMyApplications } from "@/queryandmutation"
+import { useRouter } from "next/navigation"
 import {
-  MapPin, Clock, CheckCircle2, XCircle,
-  FileText, ArrowRight, ShieldCheck,
+  useGetMyApplications,
+  useGetMyAcceptedApplications,
+  useGetMyEscrows,
+} from "@/queryandmutation"
+import { ChatProvider } from "@/components/chat/ChatProvider"
+import {
+  MapPin, Clock, CheckCircle2, XCircle, FileText,
+  ArrowRight, ShieldCheck, Wallet, Navigation,
+  Landmark, MessageSquare, Calendar,
 } from "lucide-react"
 import { Button }   from "@/components/ui/button"
+import { Badge }    from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn }       from "@/lib/utils"
 
-// ─── types ───────────────────────────────────────────────────────────────────
-
-// ✅ useGetMyApplications uses leaserProcedure (GetMyApplications)
-//    Always scoped to ctx.user.id. Includes full land + leaser relations.
-
-type AppStatus = "ALL" | "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED"
+// ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<string, {
   label: string; color: string; bg: string; border: string; icon: React.ReactNode
@@ -27,6 +30,16 @@ const STATUS_CFG: Record<string, {
   REJECTED:  { label: "Rejected",  color: "text-red-600",     bg: "bg-red-50",     border: "border-red-200",     icon: <XCircle      className="w-3.5 h-3.5" /> },
   COMPLETED: { label: "Completed", color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200",    icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
 }
+
+type AppStatus = "ALL" | "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED"
+
+const FILTERS: { label: string; value: AppStatus }[] = [
+  { label: "All",       value: "ALL"       },
+  { label: "Pending",   value: "PENDING"   },
+  { label: "Accepted",  value: "ACCEPTED"  },
+  { label: "Completed", value: "COMPLETED" },
+  { label: "Rejected",  value: "REJECTED"  },
+]
 
 function StatusBadge({ status }: { status: string }) {
   const c = STATUS_CFG[status] ?? {
@@ -43,17 +56,127 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-// ─── application card ────────────────────────────────────────────────────────
+// ─── Escrow card (ACCEPTED + paid) ───────────────────────────────────────────
 
-function AppCard({ app }: { app: any }) {
-  // app.land is fully populated — title, location, heroImageUrl, id all present
-  // because GetMyApplications uses include: { land: true, leaser: true }
+function EscrowCard({
+  escrow,
+  onChatOpen,
+}: {
+  escrow: any
+  onChatOpen: (channelId: string) => void
+}) {
+  const chatChannelId = escrow.chatChannelId ?? null
+  const canChat       = !!chatChannelId
+  const landId        = escrow.application?.land?.id
+
+  return (
+    <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden flex flex-col md:flex-row">
+
+      {/* Land image */}
+      <div className="w-full md:w-56 h-48 md:h-auto relative shrink-0">
+        <img
+          src={escrow.application?.land?.heroImageUrl}
+          className="w-full h-full object-cover"
+          alt="Land"
+        />
+        <Badge className="absolute top-3 left-3 bg-emerald-500 shadow-md text-xs font-bold">
+          Live Agreement
+        </Badge>
+      </div>
+
+      {/* Main info */}
+      <div className="flex-1 p-5 flex flex-col justify-between gap-4 min-w-0">
+        <div>
+          <h3 className="font-black text-stone-900 text-base leading-tight">
+            {escrow.application?.land?.title ?? "—"}
+          </h3>
+          <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-stone-400">
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {escrow.application?.land?.location ?? "—"}
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {escrow.application?.leaseDurationInMonths} months
+            </span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2">
+          <Button
+            onClick={() => window.location.href = `/verify-agreement/${escrow.id}`}
+            className="w-full bg-stone-900 hover:bg-black text-white rounded-xl h-10 font-bold gap-2 shadow-sm"
+          >
+            <FileText className="w-4 h-4 text-emerald-400" />
+            Verify with Malpot Paper
+          </Button>
+
+          <div className="grid grid-cols-3 gap-2">
+            {landId && (
+              <Link href={`/navigate/malpot/${landId}`} className="w-full">
+                <Button variant="outline" size="sm"
+                  className="w-full rounded-xl h-9 text-[11px] font-bold border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100">
+                  <Landmark className="w-3.5 h-3.5 mr-1" /> Malpot
+                </Button>
+              </Link>
+            )}
+            {landId && (
+              <Link href={`/navigate/land/${landId}`} className="w-full">
+                <Button variant="outline" size="sm"
+                  className="w-full rounded-xl h-9 text-[11px] font-bold border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-100">
+                  <Navigation className="w-3.5 h-3.5 mr-1" /> Navigate
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!canChat}
+              title={!canChat ? "Chat unlocks after escrow payment" : "Open lease chat"}
+              onClick={() => canChat && onChatOpen(chatChannelId)}
+              className="rounded-xl h-9 text-[11px] font-bold border-stone-200"
+            >
+              <MessageSquare className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+              {canChat ? "Chat" : "Chat 🔒"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Escrow amount panel */}
+      <div className="w-full md:w-52 bg-stone-50 p-5 border-t md:border-t-0 md:border-l border-stone-100 flex flex-col justify-center gap-3 shrink-0">
+        <div>
+          <p className="text-[10px] uppercase font-black text-stone-400 tracking-widest mb-1">Escrow Security</p>
+          <p className="text-lg font-black text-emerald-600 flex items-center gap-1.5">
+            <ShieldCheck className="w-5 h-5" /> PROTECTED
+          </p>
+        </div>
+        <div className="bg-emerald-500/10 rounded-xl border border-emerald-100 p-3">
+          <p className="text-[11px] text-emerald-700 font-bold leading-snug">
+            NPR {escrow.amount?.toLocaleString()} secured.
+            Upload signed Malpot doc to release funds.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Application card (PENDING / ACCEPTED unpaid / REJECTED) ─────────────────
+
+function AppCard({ app, escrowMap }: { app: any; escrowMap: Record<string, any> }) {
+  const router  = useRouter()
+  const escrow  = escrowMap[app.id]
+  const hasPaid = !!escrow
+  const total   = app.proposedMonthlyRent * app.leaseDurationInMonths
+
   return (
     <div className={cn(
       "bg-white rounded-2xl border shadow-sm p-5 flex gap-4 items-start transition-all hover:shadow-md",
-      app.status === "ACCEPTED" ? "border-emerald-200" : "border-stone-100"
+      app.status === "ACCEPTED" && !hasPaid ? "border-indigo-200" : "border-stone-100"
     )}>
-      {/* Land thumbnail */}
+      {/* Thumbnail */}
       <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-100 shrink-0">
         {app.land?.heroImageUrl
           ? <img src={app.land.heroImageUrl} alt={app.land.title} className="w-full h-full object-cover" />
@@ -76,19 +199,16 @@ function AppCard({ app }: { app: any }) {
           <StatusBadge status={app.status} />
         </div>
 
-        {/* Lease details */}
         <div className="flex flex-wrap gap-4 text-xs text-stone-500">
-          <span>💰 <span className="font-bold text-stone-700">₨{app.proposedMonthlyRent.toLocaleString()}/mo</span></span>
+          <span>💰 <span className="font-bold text-stone-700">₨{app.proposedMonthlyRent?.toLocaleString()}/mo</span></span>
           <span>⏱ <span className="font-bold text-stone-700">{app.leaseDurationInMonths} months</span></span>
           <span>📅 {new Date(app.createdAt).toLocaleDateString("en-NP", { day: "numeric", month: "short", year: "numeric" })}</span>
         </div>
 
-        {/* Plans preview */}
         {app.plans && (
           <p className="text-xs text-stone-400 line-clamp-1 italic">"{app.plans}"</p>
         )}
 
-        {/* Additional message from owner rejection — if present */}
         {app.additionalMessages && app.status === "REJECTED" && (
           <p className="text-xs text-red-400 bg-red-50 rounded-lg px-3 py-1.5">
             ℹ️ {app.additionalMessages}
@@ -104,12 +224,17 @@ function AppCard({ app }: { app: any }) {
               </Button>
             </Link>
           )}
-          {app.status === "ACCEPTED" && (
-            <Link href={`/checkout/${app.id}`}>
-              <Button size="sm" className="rounded-xl h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
-                <ShieldCheck className="w-3 h-3" /> Pay Escrow
-              </Button>
-            </Link>
+
+          {/* ACCEPTED + not yet paid → show escrow CTA */}
+          {app.status === "ACCEPTED" && !hasPaid && (
+            <Button
+              size="sm"
+              onClick={() => router.push(`/checkout/${app.id}`)}
+              className="rounded-xl h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white gap-1"
+            >
+              <Wallet className="w-3 h-3" />
+              Pay Escrow — NPR {total.toLocaleString()}
+            </Button>
           )}
         </div>
       </div>
@@ -117,36 +242,45 @@ function AppCard({ app }: { app: any }) {
   )
 }
 
-// ─── filter tabs ─────────────────────────────────────────────────────────────
-
-const FILTERS: { label: string; value: AppStatus }[] = [
-  { label: "All",       value: "ALL"       },
-  { label: "Pending",   value: "PENDING"   },
-  { label: "Accepted",  value: "ACCEPTED"  },
-  { label: "Completed", value: "COMPLETED" },
-  { label: "Rejected",  value: "REJECTED"  },
-]
-
-// ─── page ────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MyLeasesPage() {
   const [activeFilter, setActiveFilter] = useState<AppStatus>("ALL")
+  const [openChannelId, setOpenChannelId] = useState<string | null>(null)
 
-  // Pass status to the hook only when not "ALL" so the backend
-  // filters — avoids fetching everything then filtering client-side
+  // Filtered list for the active tab
   const { data, isLoading } = useGetMyApplications(
     activeFilter === "ALL" ? {} : { status: activeFilter }
   )
-
-  const applications = data?.applications ?? []
-  const total        = data?.total        ?? 0
-
-  // Count per status for badge display (from "ALL" data when filter is ALL)
+  // Full list just for counts
   const { data: allData } = useGetMyApplications({})
-  const counts = (allData?.applications ?? []).reduce<Record<string, number>>((acc, a) => {
+  // Escrows to know which accepted apps are paid + get chatChannelId
+  const { data: escrowData } = useGetMyEscrows()
+
+  const applications = data?.applications   ?? []
+  const allApps      = allData?.applications ?? []
+  const escrows      = escrowData?.escrows   ?? []
+
+  // applicationId → escrow lookup
+  const escrowMap = escrows.reduce<Record<string, any>>((acc, e: any) => {
+    acc[e.applicationId] = e
+    return acc
+  }, {})
+
+  // Counts per status for filter badges
+  const counts = allApps.reduce<Record<string, number>>((acc, a: any) => {
     acc[a.status] = (acc[a.status] ?? 0) + 1
     return acc
   }, {})
+
+  // Separate accepted+paid apps (shown as EscrowCards) from the rest
+  const escrowCards = activeFilter === "ALL" || activeFilter === "ACCEPTED"
+    ? applications.filter((a: any) => a.status === "ACCEPTED" && !!escrowMap[a.id])
+    : []
+
+  const appCards = applications.filter((a: any) =>
+    !(a.status === "ACCEPTED" && !!escrowMap[a.id])
+  )
 
   return (
     <div className="min-h-screen pb-20">
@@ -157,7 +291,7 @@ export default function MyLeasesPage() {
           <div>
             <h1 className="text-2xl font-black text-stone-900 tracking-tight">My Applications</h1>
             <p className="text-stone-400 text-sm mt-0.5">
-              {isLoading ? "Loading…" : `${total} application${total !== 1 ? "s" : ""}`}
+              {isLoading ? "Loading…" : `${data?.total ?? 0} application${(data?.total ?? 0) !== 1 ? "s" : ""}`}
             </p>
           </div>
           <Link href="/dashboard/find-land">
@@ -167,9 +301,9 @@ export default function MyLeasesPage() {
           </Link>
         </div>
 
-        {/* Filter pills with counts */}
+        {/* Filter pills */}
         <div className="flex gap-2 flex-wrap">
-          {FILTERS.map(f => (
+          {FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => setActiveFilter(f.value)}
@@ -193,12 +327,14 @@ export default function MyLeasesPage() {
           ))}
         </div>
 
-        {/* Application list */}
+        {/* Content */}
         {isLoading ? (
           <div className="space-y-4">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-40 rounded-2xl" />
+            ))}
           </div>
-        ) : applications.length === 0 ? (
+        ) : escrowCards.length === 0 && appCards.length === 0 ? (
           <div className="bg-white rounded-2xl border border-stone-100 py-24 text-center shadow-sm">
             <FileText className="w-10 h-10 text-stone-200 mx-auto mb-3" />
             <p className="font-bold text-stone-500">No applications in this category</p>
@@ -210,10 +346,25 @@ export default function MyLeasesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {applications.map((app: any) => <AppCard key={app.id} app={app} />)}
+            {/* Escrow cards first (active leases) */}
+            {escrowCards.map((app: any) => (
+              <EscrowCard
+                key={app.id}
+                escrow={escrowMap[app.id]}
+                onChatOpen={(channelId) => setOpenChannelId(channelId)}
+              />
+            ))}
+
+            {/* Regular application cards */}
+            {appCards.map((app: any) => (
+              <AppCard key={app.id} app={app} escrowMap={escrowMap} />
+            ))}
           </div>
         )}
       </div>
+
+      {/* Floating chat — proper ChatProvider, no DOM hacks */}
+      <ChatProvider role="leaser" openChannelId={openChannelId} />
     </div>
   )
 }

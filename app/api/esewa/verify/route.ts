@@ -1,5 +1,4 @@
-// FRONTEND: app/api/esewa/verify/route.ts
-
+// FILE: app/api/esewa/verify/route.ts
 import { auth }                      from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyEsewaCallback }       from '@/lib/esewa.utils';
@@ -7,6 +6,7 @@ import { StreamChat }                from 'stream-chat';
 
 const BACKEND_URL     = process.env.BACKEND_URL ?? 'http://localhost:8000';
 const COMMISSION_RATE = 0.05;
+const IS_DEV          = process.env.NODE_ENV === 'development';
 
 const streamServer = StreamChat.getInstance(
   process.env.NEXT_PUBLIC_STREAM_API_KEY!,
@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     const body = await req.clone().json() as {
       encodedData:   string;
       applicationId: string;
+      mock?:         boolean;
     };
-    const { encodedData, applicationId } = body;
+    const { encodedData, applicationId, mock } = body;
 
     if (!encodedData || !applicationId) {
       return NextResponse.json(
@@ -35,11 +36,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Verify eSewa HMAC signature
-    const { valid, decoded } = verifyEsewaCallback(encodedData);
-    if (!valid || !decoded) {
-      return NextResponse.json({ error: 'Invalid eSewa signature.' }, { status: 400 });
+    // 3. Verify eSewa HMAC — skipped in dev when mock=true
+    let decoded: any;
+
+    if (IS_DEV && mock) {
+      try {
+        decoded = JSON.parse(atob(encodedData));
+        decoded.status = 'COMPLETE';
+      } catch {
+        return NextResponse.json({ error: 'Could not parse mock payload.' }, { status: 400 });
+      }
+      console.warn('[esewa/verify] ⚠️  DEV MOCK — skipping HMAC signature check');
+    } else {
+      const result = verifyEsewaCallback(encodedData);
+      if (!result.valid || !result.decoded) {
+        return NextResponse.json({ error: 'Invalid eSewa signature.' }, { status: 400 });
+      }
+      decoded = result.decoded;
     }
+
     if (decoded.status !== 'COMPLETE') {
       return NextResponse.json(
         { error: `Payment not complete. Status: ${decoded.status}` },
@@ -62,10 +77,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not get auth token.' }, { status: 401 });
     }
 
-    const amount     = parseFloat(decoded.total_amount);
+    // ─── 6. Fetch application FIRST to reliably get ownerId ───────────────────
+    // The pay-escrow response doesn't always include ownerId, so we resolve it
+    // here from the application's land record before doing anything else.
+    let ownerId: string | null = null;
+
+    try {
+      const appRes = await fetch(
+        `${BACKEND_URL}/api/lease/GetApplicationById?applicationId=${applicationId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (appRes.ok) {
+        const appJson = await appRes.json();
+        // tRPC REST wrapper: result is either { result: { data: ... } } or the object directly
+        const appData = appJson?.result?.data ?? appJson;
+        ownerId = appData?.land?.ownerId ?? appData?.ownerId ?? null;
+        console.log('[esewa/verify] Resolved ownerId from application:', ownerId);
+      } else {
+        console.warn('[esewa/verify] Could not fetch application — will fall back to escrow response');
+      }
+    } catch (appFetchErr) {
+      console.warn('[esewa/verify] Application pre-fetch failed:', appFetchErr);
+    }
+
+    // ─── 7. Record escrow in DB ────────────────────────────────────────────────
+    const amount     = IS_DEV && mock ? 1000 : parseFloat(decoded.total_amount);
     const commission = amount * COMMISSION_RATE;
 
-    // 6. Record escrow in DB via backend REST
     const backendRes = await fetch(`${BACKEND_URL}/api/lease/pay-escrow`, {
       method:  'POST',
       headers: {
@@ -81,6 +119,8 @@ export async function POST(req: NextRequest) {
     });
 
     const backendJson = await backendRes.json().catch(() => null);
+    console.log('[esewa/verify] pay-escrow response:', backendRes);
+    
 
     if (!backendRes.ok) {
       const errMsg: string =
@@ -94,28 +134,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const escrow   = backendJson?.escrow ?? null;
-    const ownerId  = escrow?.ownerId  ?? backendJson?.ownerId;
-    const leaserId = escrow?.leaserId ?? userId;
+    const escrow = backendJson?.escrow ?? null;
 
-    console.log('[esewa/verify] ownerId:', ownerId, '| leaserId:', leaserId);
+    // Resolve ownerId — priority: pre-fetched > escrow response > backendJson root
+    ownerId = ownerId
+      ?? escrow?.ownerId
+      ?? backendJson?.ownerId
+      ?? null;
 
-    // 7. Create Stream Chat channel
+    // leaserId is always the authenticated user making the payment
+    const leaserId = userId;
+
+    console.log('[esewa/verify] Final IDs — ownerId:', ownerId, '| leaserId:', leaserId);
+
+    // ─── 8. Create Stream Chat channel ────────────────────────────────────────
     const channelId   = `lease-${applicationId}`;
     let chatChannelId = channelId;
 
     try {
-      if (!ownerId || !leaserId) {
-        throw new Error(`Missing user IDs — ownerId: ${ownerId}, leaserId: ${leaserId}`);
+      if (!ownerId) {
+        throw new Error('ownerId could not be resolved — cannot create chat channel');
       }
 
-      // Upsert both users as admin — bypasses all Stream permission checks
       await streamServer.upsertUsers([
         { id: ownerId,  name: 'Land Owner', role: 'admin' } as any,
         { id: leaserId, name: 'Leaser',     role: 'admin' } as any,
       ]);
 
-      // Create channel with both as members
       const channel = streamServer.channel('messaging', channelId, {
         created_by_id: leaserId,
         members:       [ownerId, leaserId],
@@ -123,20 +168,19 @@ export async function POST(req: NextRequest) {
 
       await channel.create();
 
-      console.log('[esewa/verify] Channel created:', channelId);
-
-      // Send welcome message
       await channel.sendMessage({
-        text:    '🎉 Escrow payment confirmed! You can now discuss the lease agreement and arrange to visit the Malpot Karyalaya together.',
+        text: IS_DEV && mock
+          ? '🧪 Dev mock payment confirmed! Chat channel is active for testing.'
+          : '🎉 Escrow payment confirmed! You can now discuss the lease agreement and arrange to visit the Malpot Karyalaya together.',
         user_id: leaserId,
       });
 
-      chatChannelId = channelId;
+      console.log('[esewa/verify] Stream channel created:', channelId);
     } catch (streamErr: any) {
       console.error('[esewa/verify] Stream error:', streamErr?.message, '| code:', streamErr?.code);
     }
 
-    // 8. Save chatChannelId to Escrow record in DB
+    // ─── 9. Save chatChannelId to Escrow record ────────────────────────────────
     try {
       await fetch(`${BACKEND_URL}/api/escrow/save-chat-channel`, {
         method:  'POST',
@@ -157,7 +201,9 @@ export async function POST(req: NextRequest) {
       applicationId,
       chatChannelId,
       escrow:          escrow ?? null,
-      message:         'Payment verified, escrow recorded, chat channel created.',
+      message:         IS_DEV && mock
+        ? 'Mock payment verified, escrow recorded, chat channel created.'
+        : 'Payment verified, escrow recorded, chat channel created.',
     });
 
   } catch (err: any) {

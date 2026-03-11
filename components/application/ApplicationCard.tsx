@@ -16,6 +16,7 @@ import {
   Loader2,
   Paperclip,
 } from "lucide-react";
+import { useGetMe } from "@/queryandmutation";
 
 interface ApplicationCardProps {
   app: any;
@@ -26,6 +27,7 @@ interface ApplicationCardProps {
   getStatusConfig: (status: string) => string;
   /** Called when the Chat button is clicked — opens the correct channel */
   onChatOpen?: (channelId: string) => void;
+  // New prop to indicate if the current user is the landowner
 }
 
 export function ApplicationCard({
@@ -36,13 +38,15 @@ export function ApplicationCard({
   isRejecting,
   getStatusConfig,
   onChatOpen,
+  
 }: ApplicationCardProps) {
   const hasEscrow = !!escrow;
   const landId    = app.land?.id || app.landId;
-
+const { data: user } = useGetMe();
   // Chat is only available once escrow is active and channel exists
   const chatChannelId = escrow?.chatChannelId ?? null;
   const canChat       = hasEscrow && !!chatChannelId;
+ 
 
   return (
     <Card

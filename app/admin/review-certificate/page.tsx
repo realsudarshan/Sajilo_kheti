@@ -1,6 +1,6 @@
 "use client";
 
-import { useGetAllEscrowsForAdmin, useVerifyLegalDocuments } from "@/queryandmutation/index";
+import { useGetAllAgreementEscrowsForAdmin, useGetAllEscrowsForAdmin, useVerifyLegalDocuments } from "@/queryandmutation/index";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -16,7 +16,7 @@ import { FileText, CheckCircle, XCircle, Loader2, ExternalLink } from "lucide-re
 
 export default function ReviewCertificatePage() {
   // Using the custom hooks we defined
-  const { data: escrows, isLoading } = useGetAllEscrowsForAdmin();
+  const { data: escrows, isLoading } = useGetAllAgreementEscrowsForAdmin();
   const { mutate: verify, isPending: isProcessing } = useVerifyLegalDocuments();
 
   if (isLoading) {

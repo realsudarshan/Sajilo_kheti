@@ -159,6 +159,10 @@ export const useGetMyLeaserApplications = (input?: {
     enabled: true,
   });
 };
+export const useGetAllAgreementEscrowsForAdmin = () => {
+    return trpc.escrow.GetAllEscrowsAgreementForAdmin.useQuery();
+};
+
 
 
 

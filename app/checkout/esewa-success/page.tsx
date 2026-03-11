@@ -1,15 +1,16 @@
-// FRONTEND: app/checkout/esewa-success/page.tsx
+// FILE: app/checkout/esewa-success/page.tsx
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
-import { CheckCircle2, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertCircle, ArrowRight, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function EsewaSuccessContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
   const encodedData  = searchParams.get('data') ?? '';
+  const isMock       = searchParams.get('mock') === 'true';
 
   const [status,          setStatus]          = useState<'verifying' | 'success' | 'error'>('verifying');
   const [transactionCode, setTransactionCode] = useState('');
@@ -17,17 +18,24 @@ function EsewaSuccessContent() {
   const [errorMsg,        setErrorMsg]        = useState('');
 
   useEffect(() => {
+    // ── Mock bypass: sandbox was down, payment was simulated ──────────────────
+    if (isMock) {
+      setTransactionCode('MOCK-DEV-BYPASS');
+      setAmount(0);
+      setStatus('success');
+      return;
+    }
+
+    // ── Real eSewa flow ───────────────────────────────────────────────────────
     if (!encodedData) {
       setStatus('error');
       setErrorMsg('No payment data received from eSewa.');
       return;
     }
 
-    // Decode base64 client-side using atob() — Buffer is Node.js only
     let applicationId = '';
     try {
       const decoded = JSON.parse(atob(encodedData));
-      // transactionUuid format: {applicationId}-{timestamp}
       applicationId = decoded.transaction_uuid.split('-').slice(0, -1).join('-');
     } catch {
       setStatus('error');
@@ -55,7 +63,7 @@ function EsewaSuccessContent() {
         setStatus('error');
         setErrorMsg('Network error during verification.');
       });
-  }, [encodedData]);
+  }, [encodedData, isMock]);
 
   if (status === 'verifying') {
     return (
@@ -98,19 +106,33 @@ function EsewaSuccessContent() {
         <p className="text-sm text-slate-500 mt-1">Your escrow payment is securely held.</p>
       </div>
 
+      {/* Dev mock banner */}
+      {isMock && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-left">
+          <FlaskConical className="h-4 w-4 text-amber-500 shrink-0" />
+          <p className="text-xs text-amber-700 font-medium">
+            <strong>Dev mode:</strong> This was a simulated payment. No real money moved. Remove bypass before going to production.
+          </p>
+        </div>
+      )}
+
       <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5 text-left space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-slate-500 font-medium">Transaction Code</span>
           <span className="font-mono font-bold text-slate-800">{transactionCode}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-slate-500 font-medium">Amount Paid</span>
-          <span className="font-bold text-emerald-600">{Number(amount).toLocaleString()} NPR</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-slate-500 font-medium">Escrow Status</span>
-          <span className="font-bold text-blue-600">HOLDING</span>
-        </div>
+        {!isMock && (
+          <>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500 font-medium">Amount Paid</span>
+              <span className="font-bold text-emerald-600">{Number(amount).toLocaleString()} NPR</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500 font-medium">Escrow Status</span>
+              <span className="font-bold text-blue-600">HOLDING</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 text-left">
@@ -145,4 +167,4 @@ export default function EsewaSuccessPage() {
       </div>
     </div>
   );
-}
+} 
