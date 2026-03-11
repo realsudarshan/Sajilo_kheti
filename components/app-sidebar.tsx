@@ -27,6 +27,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { title } from "process"
+import { url } from "inspector"
+import { Book, Mail } from "lucide-react"
 
 const data = {
   user: {
@@ -64,6 +67,23 @@ const data = {
       title: "Transactions",
       url: "/admin/transactions",
       icon: IconCurrencyRupeeNepalese,
+    },
+    {
+      title:"Blogs",
+      url:"/admin/studio",
+      icon: Book,
+    },
+    {title:"Reports",
+     url:"/admin/reports",
+     icon: IconFileDescription,
+    },
+    {title:"Analytics",
+     url:"/admin/analytics",
+     icon: IconMap,
+    },
+    {title:"Send mail",
+     url:"/admin/mail",
+     icon: Mail,
     },
   ],
   navSecondary: [
