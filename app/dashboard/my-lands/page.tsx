@@ -1,191 +1,284 @@
-"use client"
+"use client";
 
-import React from "react"
-import Link from "next/link"
-import { 
-  Wallet, 
-  MapPin, 
-  Calendar, 
-  ArrowRight, 
-  MessageSquare, 
-  CheckCircle2, 
-  Clock, 
-  Landmark, 
-  Navigation,
-  FileText, // Added for verification
-  ShieldCheck 
-} from "lucide-react"
-import { Button }   from "@/components/ui/button"
-import { Badge }    from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useRouter } from "next/navigation"
+import Link from "next/link";
+import { useState } from "react";
 import {
-  useGetMyAcceptedApplications,
-  useGetMyEscrows,
-} from "@/queryandmutation/index"
-import ChatWidget from "@/components/chat/Chatwidget"
+  MapPin,
+  PlusCircle,
+  Eye,
+  EyeOff,
+  FileText,
+  MoreVertical,
+  Search,
+  Filter,
+  CheckCircle2,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  useGetMyLands,
+  useUpdateLandStatus,
+} from "@/queryandmutation";
+import { toast } from "sonner";
 
-export default function MyApplicationsPage() {
-  const router = useRouter()
+type LandStatus = "ALL" | "AVAILABLE" | "IN_NEGOTIATION" | "LEASED" | "HIDDEN" | "UNVERIFIED";
 
-  const { data: appData,    isLoading: appsLoading    } = useGetMyAcceptedApplications()
-  const { data: escrowData, isLoading: escrowsLoading } = useGetMyEscrows()
+const STATUS_FILTERS: { value: LandStatus; label: string }[] = [
+  { value: "ALL",            label: "All" },
+  { value: "AVAILABLE",      label: "Available" },
+  { value: "IN_NEGOTIATION", label: "Negotiating" },
+  { value: "LEASED",         label: "Leased" },
+  { value: "HIDDEN",         label: "Hidden" },
+  { value: "UNVERIFIED",     label: "Unverified" },
+];
 
-  const applications = appData?.applications ?? []
-  const escrows      = escrowData?.escrows   ?? []
+const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
+  AVAILABLE:      { label: "Available",      dot: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  IN_NEGOTIATION: { label: "In Negotiation", dot: "bg-amber-500",   badge: "bg-amber-100 text-amber-700 border-amber-200" },
+  LEASED:         { label: "Leased",         dot: "bg-blue-500",    badge: "bg-blue-100 text-blue-700 border-blue-200" },
+  HIDDEN:         { label: "Hidden",         dot: "bg-stone-400",   badge: "bg-stone-100 text-stone-500 border-stone-200" },
+  UNVERIFIED:     { label: "Unverified",     dot: "bg-orange-400",  badge: "bg-orange-100 text-orange-700 border-orange-200" },
+  REJECTED:       { label: "Rejected",       dot: "bg-red-400",     badge: "bg-red-100 text-red-600 border-red-200" },
+};
 
-  const unpaidApps = applications.filter(
-    (app) => !escrows.some((e) => e.applicationId === app.id)
-  )
+function LandCard({ land }: { land: any }) {
+  const updateStatus = useUpdateLandStatus();
+  const config = STATUS_CONFIG[land.status] ?? { label: land.status, dot: "bg-gray-400", badge: "bg-gray-100 text-gray-600" };
 
-  const isLoading = appsLoading || escrowsLoading
-  const isEmpty   = unpaidApps.length === 0 && escrows.length === 0
-
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-40 w-full rounded-3xl" />
-      </div>
-    )
-  }
+  const handleToggleVisibility = async () => {
+    const newStatus = land.status === "HIDDEN" ? "AVAILABLE" : "HIDDEN";
+    try {
+      await updateStatus.mutateAsync({ landId: land.id, status: newStatus });
+      toast.success(`Land ${newStatus === "HIDDEN" ? "hidden" : "made visible"}`);
+    } catch {
+      toast.error("Failed to update land status");
+    }
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Applications</h1>
-        <p className="text-sm text-slate-500">Manage your accepted lands and complete official procedures.</p>
+    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md transition-shadow group">
+      {/* Image */}
+      <div className="relative h-48 bg-stone-100 overflow-hidden">
+        {land.galleryUrls?.[0] ? (
+          <img
+            src={land.galleryUrls[0]}
+            alt={land.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <MapPin className="h-12 w-12 text-stone-200" />
+          </div>
+        )}
+
+        {/* Status dot overlay */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1 shadow-sm">
+          <span className={`w-2 h-2 rounded-full ${config.dot}`} />
+          <span className="text-xs font-bold text-stone-700">{config.label}</span>
+        </div>
+
+        {/* More menu */}
+        <div className="absolute top-3 right-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0 bg-white/90 hover:bg-white rounded-full shadow-sm"
+              >
+                <MoreVertical className="h-4 w-4 text-stone-600" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-xl">
+              <DropdownMenuItem asChild>
+                <Link href={`/landowner-dashboard/my-lands/${land.id}/applications`} className="gap-2">
+                  <FileText className="h-4 w-4 text-stone-500" />
+                  View Applications
+                </Link>
+              </DropdownMenuItem>
+              {(land.status === "AVAILABLE" || land.status === "HIDDEN") && (
+                <DropdownMenuItem onClick={handleToggleVisibility} className="gap-2">
+                  {land.status === "HIDDEN" ? (
+                    <><Eye className="h-4 w-4 text-emerald-600" /> Make Visible</>
+                  ) : (
+                    <><EyeOff className="h-4 w-4 text-stone-500" /> Hide Land</>
+                  )}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      {isEmpty ? (
-        <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-          <p className="text-slate-400">No accepted applications yet.</p>
+      {/* Content */}
+      <div className="p-4">
+        <h3 className="font-black text-stone-900 text-sm leading-tight truncate">{land.title}</h3>
+        <div className="flex items-center gap-1 mt-1 text-stone-400">
+          <MapPin className="h-3 w-3 shrink-0" />
+          <span className="text-xs truncate">{land.location}</span>
+        </div>
+
+        {/* Size info */}
+        {land.sqMtr && (
+          <p className="text-xs text-stone-500 mt-2">
+            <span className="font-bold text-stone-700">{land.sqMtr.toFixed(0)} m²</span>
+          </p>
+        )}
+
+        {/* Price */}
+        {land.pricePerMonth && (
+          <p className="text-xs text-stone-500 mt-0.5">
+            <span className="font-black text-emerald-700">Rs. {land.pricePerMonth.toLocaleString()}</span>
+            <span className="text-stone-400"> / month</span>
+          </p>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 mt-4">
+          <Link href={`/landowner-dashboard/my-lands/${land.id}/applications`} className="flex-1">
+            <Button
+              size="sm"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold h-8"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              Applications
+            </Button>
+          </Link>
+          {(land.status === "AVAILABLE" || land.status === "HIDDEN") && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleToggleVisibility}
+              disabled={updateStatus.isPending}
+              className="rounded-xl h-8 w-8 p-0 border-stone-200"
+              title={land.status === "HIDDEN" ? "Make visible" : "Hide"}
+            >
+              {land.status === "HIDDEN" ? (
+                <Eye className="h-3.5 w-3.5 text-emerald-600" />
+              ) : (
+                <EyeOff className="h-3.5 w-3.5 text-stone-400" />
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function MyLandsPage() {
+  const [filter, setFilter]   = useState<LandStatus>("ALL");
+  const [search, setSearch]   = useState("");
+  const { data, isLoading }   = useGetMyLands();
+
+  const lands: any[] = data?.lands ?? [];
+
+  const filtered = lands.filter((land) => {
+    const matchStatus = filter === "ALL" || land.status === filter;
+    const matchSearch =
+      !search ||
+      land.title?.toLowerCase().includes(search.toLowerCase()) ||
+      land.location?.toLowerCase().includes(search.toLowerCase());
+    return matchStatus && matchSearch;
+  });
+
+  const counts = lands.reduce((acc: Record<string, number>, land: any) => {
+    acc[land.status] = (acc[land.status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-stone-900">My Lands</h1>
+          <p className="text-stone-500 text-sm mt-1">
+            {lands.length} land{lands.length !== 1 ? "s" : ""} listed
+          </p>
+        </div>
+        <Link href="/landowner-dashboard/list-land">
+          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-2 font-bold shadow-sm">
+            <PlusCircle className="h-4 w-4" />
+            Add Land
+          </Button>
+        </Link>
+      </div>
+
+      {/* Search + filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by title or location…"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-stone-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+          />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                filter === f.value
+                  ? "bg-stone-900 text-white border-stone-900"
+                  : "bg-white text-stone-600 border-stone-200 hover:border-stone-300"
+              }`}
+            >
+              {f.label}
+              {f.value !== "ALL" && counts[f.value] ? (
+                <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                  filter === f.value ? "bg-white/20 text-white" : "bg-stone-100 text-stone-500"
+                }`}>
+                  {counts[f.value]}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-72 rounded-2xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-stone-200 py-24 text-center">
+          <MapPin className="h-12 w-12 text-stone-200 mx-auto mb-4" />
+          <p className="text-stone-600 font-bold">
+            {search ? "No lands match your search" : "No lands in this category"}
+          </p>
+          <p className="text-stone-400 text-sm mt-1">
+            {!search && filter === "ALL" && "List your first land to get started"}
+          </p>
+          {filter === "ALL" && !search && (
+            <Link href="/landowner-dashboard/list-land">
+              <Button size="sm" className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold">
+                <PlusCircle className="h-4 w-4 mr-1.5" /> List a Land
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
-        <div className="grid gap-6">
-
-          {/* SECTION 1: PAID ESCROWS (Ready for Legal Action) */}
-          {escrows.map((escrow) => (
-            <div key={escrow.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col md:flex-row">
-              <div className="w-full md:w-64 h-56 md:h-auto relative shrink-0">
-                <img src={escrow.application.land.heroImageUrl} className="w-full h-full object-cover" alt="Land" />
-                <Badge className="absolute top-3 left-3 bg-emerald-500 shadow-lg">Live Agreement</Badge>
-                
-                <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-2">
-                   <Link href={`/navigation/land/${escrow.application.land.id}`}>
-                      <Button size="sm" className="w-full bg-white/90 backdrop-blur text-blue-600 hover:bg-white text-[10px] h-7 rounded-lg font-bold">
-                        <Navigation size={12} className="mr-1" /> View Site Path
-                      </Button>
-                   </Link>
-                </div>
-              </div>
-
-              <div className="flex-1 p-6 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{escrow.application.land.title}</h3>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
-                    <span className="flex items-center gap-1"><MapPin size={14} /> {escrow.application.land.location}</span>
-                    <span className="flex items-center gap-1"><Calendar size={14} /> {escrow.application.leaseDurationInMonths} Months</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mt-6">
-                  {/* NEW VERIFY BUTTON */}
-                  <Button 
-                    onClick={() => router.push(`/verify-agreement/${escrow.id}`)}
-                    className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
-                  >
-                    <FileText size={16} className="text-emerald-400" />
-                    Verify with Malpot Paper
-                  </Button>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link href={`/navigation/malpot/${escrow.application.land.id}`} className="w-full">
-                      <Button variant="outline" className="w-full border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100 rounded-xl text-[11px] h-10 font-bold">
-                        <Landmark size={14} className="mr-1.5" /> Malpot Nav
-                      </Button>
-                    </Link>
-                    <Button
-                      onClick={() => {
-                        const fab = document.querySelector('[aria-label="Open chat"]') as HTMLElement
-                        fab?.click()
-                      }}
-                      variant="outline"
-                      className="w-full rounded-xl h-10 text-[11px] font-bold border-slate-200"
-                    >
-                      <MessageSquare size={14} className="mr-1.5" /> Chat Owner
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full md:w-64 bg-slate-50 p-6 border-l border-slate-100 flex flex-col justify-center shrink-0">
-                <div className="text-center md:text-left">
-                  <p className="text-[10px] uppercase font-black text-slate-400 mb-1">Escrow Security</p>
-                  <p className="text-xl font-black text-emerald-600 mb-2 flex items-center justify-center md:justify-start gap-1">
-                    <ShieldCheck size={20} /> PROTECTED
-                  </p>
-                  <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-100">
-                    <p className="text-[10px] text-emerald-700 leading-tight font-bold">
-                      NPR {escrow.amount.toLocaleString()} is secured. 
-                      Upload the signed Malpot document to finalize.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* SECTION 2: UNPAID APPLICATIONS (Stayed same) */}
-          {unpaidApps.map((app) => (
-            <div key={app.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col md:flex-row opacity-90">
-              <div className="w-full md:w-64 h-48 md:h-auto relative shrink-0">
-                <img src={app.land.heroImageUrl} className="w-full h-full object-cover grayscale-[0.3]" alt="Land" />
-                <Badge className="absolute top-3 left-3 bg-amber-500">Payment Pending</Badge>
-              </div>
-
-              <div className="flex-1 p-6 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{app.land.title}</h3>
-                  <p className="text-xs text-slate-400 mt-1">Complete escrow to enable chat and legal verification.</p>
-                </div>
-                
-                <div className="mt-4 flex gap-3">
-                   <Link href={`/navigation/land/${app.land.id}`}>
-                      <Button variant="ghost" size="sm" className="text-blue-600 text-xs font-bold p-0 h-auto hover:bg-transparent">
-                        <Navigation size={14} className="mr-1" /> Preview Location
-                      </Button>
-                   </Link>
-                </div>
-              </div>
-
-              <div className="w-full md:w-72 bg-indigo-50/30 p-6 border-l border-slate-100 flex flex-col justify-center gap-3 shrink-0">
-                <div className="space-y-1">
-                   <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Initial Deposit</p>
-                   <p className="text-2xl font-black text-indigo-600">
-                     {(app.proposedMonthlyRent * app.leaseDurationInMonths).toLocaleString()} <span className="text-xs">NPR</span>
-                   </p>
-                </div>
-
-                <Button
-                  onClick={() => router.push(`/checkout/${app.id}`)}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-6 font-bold shadow-lg shadow-indigo-100"
-                >
-                  <Wallet size={18} className="mr-2" />
-                  Secure with Escrow
-                </Button>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((land: any) => (
+            <LandCard key={land.id} land={land} />
           ))}
         </div>
       )}
-
-      {/* Floating chat widgets */}
-      {escrows
-        .filter((e) => e.chatChannelId)
-        .map((e) => (
-          <ChatWidget key={e.chatChannelId!} channelId={e.chatChannelId!} />
-        ))}
     </div>
-  )
+  );
 }

@@ -141,3 +141,8 @@ export const useVerifyLegalDocuments = () => {
         }
     });
 };
+export const useGetMyLands = (filters?: {
+  status?: 'AVAILABLE' | 'UNVERIFIED' | 'REJECTED' | 'IN_NEGOTIATION' | 'LEASED' | 'HIDDEN';
+}) => {
+  return trpc.land.getMyLands.useQuery(filters ?? {});
+};  

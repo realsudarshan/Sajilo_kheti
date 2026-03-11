@@ -1,138 +1,200 @@
+// FILE: app/landowner-dashboard/my-lands/[id]/applications/page.tsx
 "use client";
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useState } from "react";
 import {
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  MapPin,
+  MessageSquare,
+  Loader2,
+  User,
+  Navigation,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useGetLandById,
   useGetAllApplications,
   useAcceptLeaseApplication,
   useRejectLeaseApplication,
-  useGetMyOwnerEscrows,
-} from "@/queryandmutation/index";
+} from "@/queryandmutation";
 import { toast } from "sonner";
-import { Loader2, MapPin, Inbox, ArrowLeft, Maximize2, Layers } from "lucide-react";
-import ChatWidget from "@/components/chat/Chatwidget";
-import { ApplicationCard } from "@/components/application/ApplicationCard"; 
-import { Badge } from "@/components/ui/badge";
 
 export default function LandApplicationsPage() {
-  const { id: landId } = useParams() as { id: string };
-  const { data, isLoading, refetch } = useGetAllApplications({ landId });
-  const { data: escrowData } = useGetMyOwnerEscrows();
+  const params = useParams();
+  const landId = params.id as string;
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const { mutateAsync: acceptApp, isPending: isAccepting } = useAcceptLeaseApplication();
-  const { mutateAsync: rejectApp, isPending: isRejecting } = useRejectLeaseApplication();
+  // 1. Fetching Data
+  const { data: land, isLoading: landLoading } = useGetLandById(landId);
+  const { data: appsData, isLoading: appsLoading, refetch } = useGetAllApplications({ landId });
+  
+  const acceptMutation = useAcceptLeaseApplication();
+  const rejectMutation = useRejectLeaseApplication();
 
-  const applications = data?.applications || [];
-  const escrows = escrowData?.escrows ?? [];
-  const landInfo = applications.length > 0 ? applications[0].land : null;
-  const escrowMap = new Map(escrows.map((e) => [e.applicationId, e]));
+  // 2. Extracting nested data correctly based on your provided types
+  // landData is the object itself
+  // appsData is { applications: [...], total: number }
+  const applications = appsData?.applications ?? [];
+  const totalApps = appsData?.total ?? 0;
 
-  const getStatusConfig = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "ACCEPTED": return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      case "REJECTED": return "bg-red-100 text-red-700 border-red-200";
-      case "PENDING":  return "bg-amber-100 text-amber-700 border-amber-200";
-      default:         return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
-
-  const handleAction = async (applicationId: string, action: "ACCEPT" | "REJECT") => {
+  // 3. Logic Handlers
+  const handleAccept = async (applicationId: string) => {
+    setProcessingId(applicationId);
     try {
-      if (action === "ACCEPT") {
-        await acceptApp({ applicationId });
-        toast.success("Application Accepted!");
-      } else {
-        await rejectApp({ applicationId });
-        toast.info("Application Rejected.");
-      }
+      await acceptMutation.mutateAsync({ applicationId });
+      toast.success("Application accepted!");
       refetch();
-    } catch (error: any) {
-      toast.error(error.message || "Action failed");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to accept");
+    } finally {
+      setProcessingId(null);
     }
   };
 
-  if (isLoading) return (
-    <div className="flex h-[80vh] flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
-        <p className="font-bold text-gray-400 animate-pulse">Syncing Applications...</p>
-    </div>
-  );
+  const handleReject = async (applicationId: string) => {
+    setProcessingId(applicationId);
+    try {
+      await rejectMutation.mutateAsync({ applicationId });
+      toast.success("Application rejected.");
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to reject");
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-10">
-      
-      {/* --- HERO LAND DETAIL TOP --- */}
-      {landInfo && (
-        <div className="relative h-64 md:h-80 w-full rounded-[2.5rem] overflow-hidden shadow-2xl group">
-          <img 
-            src={landInfo.heroImageUrl} 
-            alt={landInfo.title} 
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-          
-          <div className="absolute bottom-0 left-0 w-full p-6 md:p-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
-              <Link href="/landowner-dashboard/my-lands" className="inline-flex items-center text-xs font-black text-emerald-400 mb-2 bg-black/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                <ArrowLeft className="h-3 w-3 mr-1" /> BACK TO MY LANDS
-              </Link>
-              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase">{landInfo.title}</h1>
-              <p className="flex items-center text-emerald-50/80 font-medium">
-                <MapPin className="mr-2 h-5 w-5 text-emerald-400" /> {landInfo.location}
-              </p>
-            </div>
+    <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
+      {/* Back Link */}
+      <Link
+        href="/landowner-dashboard/my-lands"
+        className="inline-flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors font-medium"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to My Lands
+      </Link>
 
-            <div className="flex gap-3 md:gap-6 bg-white/10 backdrop-blur-xl p-4 rounded-[2rem] border border-white/20 shadow-2xl">
-              <div className="text-center px-4 border-r border-white/10">
-                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Size</p>
-                <p className="text-xl font-black text-white">{landInfo.sizeInSqmeter.toLocaleString()} <span className="text-[10px] font-normal">m²</span></p>
-              </div>
-              <div className="text-center px-4">
-                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Monthly Rate</p>
-                <p className="text-xl font-black text-white">Rs. {landInfo.pricePerMonth.toLocaleString()}</p>
-              </div>
+      {/* Land Info Banner */}
+      {landLoading ? (
+        <Skeleton className="h-24 rounded-2xl" />
+      ) : land && (
+        <div className="bg-white rounded-2xl border border-stone-200 p-5 flex items-center gap-4 shadow-sm">
+          <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-100 shrink-0">
+            <img 
+              src={land.heroImageUrl || land.galleryUrls?.[0] || ""} 
+              alt={land.title} 
+              className="w-full h-full object-cover" 
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-black text-stone-900 text-lg truncate">{land.title}</h1>
+            <div className="flex items-center gap-1 text-sm text-stone-400 mt-0.5">
+              <MapPin className="h-3.5 w-3.5" />
+              {land.location}
             </div>
           </div>
         </div>
       )}
 
-      {/* --- APPLICATIONS LIST --- */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-            <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
-                Lease Proposals
-                <Badge className="bg-emerald-600 text-white border-0 font-black">{applications.length}</Badge>
-            </h2>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6">
-          {applications.length > 0 ? (
-            applications.map((app) => (
-              <ApplicationCard
-                key={app.id}
-                app={app}
-                landId={landId}
-                escrow={escrowMap.get(app.id) || null}
-                isAccepting={isAccepting}
-                isRejecting={isRejecting}
-                onAction={handleAction}
-                getStatusConfig={getStatusConfig}
-              />
-            ))
-          ) : (
-            <div className="text-center py-24 bg-gray-50 dark:bg-zinc-900 rounded-[3rem] border-4 border-dashed border-gray-100 dark:border-zinc-800">
-              <Inbox className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-400">No Applicants Yet</h3>
-              <p className="text-sm text-gray-400">Your land is live. Potential farmers will appear here.</p>
-            </div>
-          )}
-        </div>
+      {/* Applications Header */}
+      <div>
+        <h2 className="text-xl font-black text-stone-900">Applications</h2>
+        <p className="text-stone-500 text-sm mt-1">
+          {totalApps} application{totalApps !== 1 ? "s" : ""} for this land
+        </p>
       </div>
 
-      {/* Floating Chat Widgets */}
-      {escrows.map((e) => e.chatChannelId && (
-        <ChatWidget key={e.chatChannelId} channelId={e.chatChannelId} />
-      ))}
+      {/* Applications List */}
+      {appsLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+        </div>
+      ) : applications.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-stone-200 py-20 text-center">
+          <MessageSquare className="h-12 w-12 text-stone-200 mx-auto mb-4" />
+          <p className="text-stone-600 font-bold">No applications yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {applications.map((app) => {
+            const isPending = app.status === "PENDING";
+            const isAccepted = app.status === "ACCEPTED";
+            const isRejected = app.status === "REJECTED";
+
+            return (
+              <div key={app.id} className="bg-white rounded-2xl border border-stone-200 p-5 space-y-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center shrink-0">
+                      <User className="h-4 w-4 text-stone-500" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-stone-900">
+                        {app.leaser?.name || "Anonymous Applicant"}
+                      </p>
+                      <p className="text-xs text-stone-400">
+                        Applied {new Date(app.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Badge className={`text-[10px] font-black border-none px-2 py-0.5 ${
+                    isAccepted ? "bg-emerald-100 text-emerald-700" :
+                    isRejected ? "bg-red-100 text-red-600" :
+                    "bg-amber-100 text-amber-700"
+                  }`}>
+                    {app.status}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <div className="bg-stone-50 rounded-xl px-3 py-2">
+                    <p className="text-[10px] text-stone-400 font-bold uppercase">Proposed Rent</p>
+                    <p className="text-sm font-black text-emerald-700">Rs. {app.proposedMonthlyRent?.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {isPending && (
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleAccept(app.id)}
+                      disabled={!!processingId}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-9 gap-2"
+                    >
+                      {processingId === app.id && acceptMutation.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      )}
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleReject(app.id)}
+                      disabled={!!processingId}
+                      className="text-red-600 border-red-200 hover:bg-red-50 rounded-xl font-bold h-9 gap-2"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      Reject
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

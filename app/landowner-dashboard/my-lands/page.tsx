@@ -1,154 +1,285 @@
+// FILE: app/landowner-dashboard/my-lands/page.tsx
+// ROUTE: /landowner-dashboard/my-lands (Grid of all lands with filter + hide/show)
+
 "use client";
 
-import React from "react";
-import { useLands, useGetMe } from "@/queryandmutation/index";
-import { 
-  Card, 
-  CardContent, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import Link from "next/link";
+import { useState } from "react";
+import {
+  MapPin,
+  PlusCircle,
+  Eye,
+  EyeOff,
+  FileText,
+  MoreVertical,
+  Search,
+  Filter,
+  CheckCircle2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  MapPin, 
-  Plus, 
-  Maximize2, 
-  Pencil, 
-  ExternalLink, 
-  AlertCircle 
-} from "lucide-react";
-import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  useGetMyLands,
+  useUpdateLandStatus,
+} from "@/queryandmutation";
+import { toast } from "sonner";
 
-// Mapping status to colors for better UX
-const statusStyles: Record<string, string> = {
-  AVAILABLE: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  UNVERIFIED: "bg-amber-100 text-amber-700 border-amber-200",
-  REJECTED: "bg-red-100 text-red-700 border-red-200",
-  IN_NEGOTIATION: "bg-blue-100 text-blue-700 border-blue-200",
-  LEASED: "bg-slate-100 text-slate-700 border-slate-200",
-  HIDDEN: "bg-gray-100 text-gray-700 border-gray-200",
+type LandStatus = "ALL" | "AVAILABLE" | "IN_NEGOTIATION" | "LEASED" | "HIDDEN" | "UNVERIFIED";
+
+const STATUS_FILTERS: { value: LandStatus; label: string }[] = [
+  { value: "ALL",            label: "All" },
+  { value: "AVAILABLE",      label: "Available" },
+  { value: "IN_NEGOTIATION", label: "Negotiating" },
+  { value: "LEASED",         label: "Leased" },
+  { value: "HIDDEN",         label: "Hidden" },
+  { value: "UNVERIFIED",     label: "Unverified" },
+];
+
+const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
+  AVAILABLE:      { label: "Available",      dot: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  IN_NEGOTIATION: { label: "In Negotiation", dot: "bg-amber-500",   badge: "bg-amber-100 text-amber-700 border-amber-200" },
+  LEASED:         { label: "Leased",         dot: "bg-blue-500",    badge: "bg-blue-100 text-blue-700 border-blue-200" },
+  HIDDEN:         { label: "Hidden",         dot: "bg-stone-400",   badge: "bg-stone-100 text-stone-500 border-stone-200" },
+  UNVERIFIED:     { label: "Unverified",     dot: "bg-orange-400",  badge: "bg-orange-100 text-orange-700 border-orange-200" },
+  REJECTED:       { label: "Rejected",       dot: "bg-red-400",     badge: "bg-red-100 text-red-600 border-red-200" },
 };
 
-export default function MyLandsPage() {
-  const { data: me } = useGetMe();
-  const { data: lands, isLoading } = useLands();
+function LandCard({ land }: { land: any }) {
+  const updateStatus = useUpdateLandStatus();
+  const config = STATUS_CONFIG[land.status] ?? { label: land.status, dot: "bg-gray-400", badge: "bg-gray-100 text-gray-600" };
 
-  // Filter: Only show lands belonging to this specific landowner
-  const myLands = lands?.filter((land) => land.ownerId === me?.id);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-NP", {
-      style: "currency",
-      currency: "NPR",
-      maximumFractionDigits: 0,
-    }).format(price);
+  const handleToggleVisibility = async () => {
+    const newStatus = land.status === "HIDDEN" ? "AVAILABLE" : "HIDDEN";
+    try {
+      await updateStatus.mutateAsync({ landId: land.id, status: newStatus });
+      toast.success(`Land ${newStatus === "HIDDEN" ? "hidden" : "made visible"}`);
+    } catch {
+      toast.error("Failed to update land status");
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-[350px] w-full rounded-xl" />
-        ))}
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md transition-shadow group">
+      {/* Image */}
+      <div className="relative h-48 bg-stone-100 overflow-hidden">
+        {land.galleryUrls?.[0] ? (
+          <img
+            src={land.galleryUrls[0]}
+            alt={land.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <MapPin className="h-12 w-12 text-stone-200" />
+          </div>
+        )}
+
+        {/* Status dot overlay */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1 shadow-sm">
+          <span className={`w-2 h-2 rounded-full ${config.dot}`} />
+          <span className="text-xs font-bold text-stone-700">{config.label}</span>
+        </div>
+
+        {/* More menu */}
+        <div className="absolute top-3 right-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0 bg-white/90 hover:bg-white rounded-full shadow-sm"
+              >
+                <MoreVertical className="h-4 w-4 text-stone-600" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-xl">
+              <DropdownMenuItem asChild>
+                <Link href={`/landowner-dashboard/my-lands/${land.id}/applications`} className="gap-2">
+                  <FileText className="h-4 w-4 text-stone-500" />
+                  View Applications
+                </Link>
+              </DropdownMenuItem>
+              {(land.status === "AVAILABLE" || land.status === "HIDDEN") && (
+                <DropdownMenuItem onClick={handleToggleVisibility} className="gap-2">
+                  {land.status === "HIDDEN" ? (
+                    <><Eye className="h-4 w-4 text-emerald-600" /> Make Visible</>
+                  ) : (
+                    <><EyeOff className="h-4 w-4 text-stone-500" /> Hide Land</>
+                  )}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-    );
-  }
+
+      {/* Content */}
+      <div className="p-4">
+        <h3 className="font-black text-stone-900 text-sm leading-tight truncate">{land.title}</h3>
+        <div className="flex items-center gap-1 mt-1 text-stone-400">
+          <MapPin className="h-3 w-3 shrink-0" />
+          <span className="text-xs truncate">{land.location}</span>
+        </div>
+
+        {/* Size info */}
+        {land.sqMtr && (
+          <p className="text-xs text-stone-500 mt-2">
+            <span className="font-bold text-stone-700">{land.sqMtr.toFixed(0)} m²</span>
+          </p>
+        )}
+
+        {/* Price */}
+        {land.pricePerMonth && (
+          <p className="text-xs text-stone-500 mt-0.5">
+            <span className="font-black text-emerald-700">Rs. {land.pricePerMonth.toLocaleString()}</span>
+            <span className="text-stone-400"> / month</span>
+          </p>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 mt-4">
+          <Link href={`/landowner-dashboard/my-lands/${land.id}/applications`} className="flex-1">
+            <Button
+              size="sm"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold h-8"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              Applications
+            </Button>
+          </Link>
+          {(land.status === "AVAILABLE" || land.status === "HIDDEN") && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleToggleVisibility}
+              disabled={updateStatus.isPending}
+              className="rounded-xl h-8 w-8 p-0 border-stone-200"
+              title={land.status === "HIDDEN" ? "Make visible" : "Hide"}
+            >
+              {land.status === "HIDDEN" ? (
+                <Eye className="h-3.5 w-3.5 text-emerald-600" />
+              ) : (
+                <EyeOff className="h-3.5 w-3.5 text-stone-400" />
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function MyLandsPage() {
+  const [filter, setFilter]   = useState<LandStatus>("ALL");
+  const [search, setSearch]   = useState("");
+  const { data, isLoading }   = useGetMyLands();
+
+  const lands: any[] = data?.lands ?? [];
+
+  const filtered = lands.filter((land) => {
+    const matchStatus = filter === "ALL" || land.status === filter;
+    const matchSearch =
+      !search ||
+      land.title?.toLowerCase().includes(search.toLowerCase()) ||
+      land.location?.toLowerCase().includes(search.toLowerCase());
+    return matchStatus && matchSearch;
+  });
+
+  const counts = lands.reduce((acc: Record<string, number>, land: any) => {
+    acc[land.status] = (acc[land.status] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">My Properties</h1>
-          <p className="text-muted-foreground">Manage your listed lands and check verification status.</p>
+          <h1 className="text-2xl font-black text-stone-900">My Lands</h1>
+          <p className="text-stone-500 text-sm mt-1">
+            {lands.length} land{lands.length !== 1 ? "s" : ""} listed
+          </p>
         </div>
-        <Button asChild className="bg-green-600 hover:bg-green-700 shadow-md">
-          <Link href="/landowner-dashboard/list-land">
-            <Plus className="mr-2 h-4 w-4" /> List New Land
-          </Link>
-        </Button>
+        <Link href="/landowner-dashboard/list-land">
+          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl gap-2 font-bold shadow-sm">
+            <PlusCircle className="h-4 w-4" />
+            Add Land
+          </Button>
+        </Link>
       </div>
 
-      {myLands && myLands.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {myLands.map((land) => (
-            <Card key={land.id} className="group overflow-hidden border-slate-200 transition-all hover:shadow-xl hover:border-blue-300">
-              
-              {/* Clicking the main area navigates to the land's application page */}
-              <Link href={`/my-lands/${land.id}/applications`} className="block">
-                <div className="relative aspect-video overflow-hidden">
-                  <img 
-                    src={land.heroImageUrl || "/placeholder.jpg"} 
-                    alt={land.title} 
-                    className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <Badge 
-                    className={`absolute top-3 right-3 border ${statusStyles[land.status] || ""}`}
-                    variant="outline"
-                  >
-                    {land.status}
-                  </Badge>
-                </div>
-
-                <CardHeader className="p-5 pb-2">
-                  <div className="flex items-center text-xs font-semibold text-blue-600 mb-1">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {land.location}
-                  </div>
-                  <CardTitle className="text-xl line-clamp-1">{land.title}</CardTitle>
-                </CardHeader>
-
-                <CardContent className="p-5 pt-0 space-y-4">
-                  <div className="flex justify-between items-end">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Price/Month</span>
-                      <span className="text-lg font-bold text-slate-900">{formatPrice(land.pricePerMonth)}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-sm font-medium bg-slate-100 px-2 py-1 rounded">
-                      <Maximize2 className="h-4 w-4 text-slate-500" />
-                      <span>{land.sizeInSqmeter.toFixed(2)} m²</span>
-                    </div>
-                  </div>
-
-                  {land.status === "REJECTED" && (
-                    <div className="flex items-start gap-2 p-3 bg-red-50 rounded-md border border-red-100 text-red-600 text-xs">
-                      <AlertCircle className="h-4 w-4 shrink-0" />
-                      <p>Verification failed. Please check your Lalpurja document or contact support.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Link>
-
-              {/* Action Footer: These are separate buttons so they don't trigger the application link */}
-              <CardFooter className="p-4 border-t bg-slate-50/50 flex gap-3">
-                <Button variant="outline" size="sm" className="flex-1 bg-white" asChild>
-                  <Link href={`/landowner-dashboard/edit/${land.id}`}>
-                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 bg-white" asChild>
-                  <Link href={`/lands/${land.id}`} target="_blank">
-                    <ExternalLink className="h-3.5 w-3.5 mr-2" /> View
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+      {/* Search + filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by title or location…"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-stone-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+          />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                filter === f.value
+                  ? "bg-stone-900 text-white border-stone-900"
+                  : "bg-white text-stone-600 border-stone-200 hover:border-stone-300"
+              }`}
+            >
+              {f.label}
+              {f.value !== "ALL" && counts[f.value] ? (
+                <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                  filter === f.value ? "bg-white/20 text-white" : "bg-stone-100 text-stone-500"
+                }`}>
+                  {counts[f.value]}
+                </span>
+              ) : null}
+            </button>
           ))}
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed rounded-3xl bg-slate-50">
-          <div className="bg-white p-4 rounded-full shadow-sm mb-4">
-            <Plus className="h-10 w-10 text-slate-300" />
-          </div>
-          <h3 className="text-xl font-bold text-slate-700">No lands listed yet</h3>
-          <p className="text-muted-foreground mb-6 max-w-xs text-center">
-            You haven't uploaded any land properties for lease. Start now to reach potential leasers.
+      </div>
+
+      {/* Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-72 rounded-2xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-stone-200 py-24 text-center">
+          <MapPin className="h-12 w-12 text-stone-200 mx-auto mb-4" />
+          <p className="text-stone-600 font-bold">
+            {search ? "No lands match your search" : "No lands in this category"}
           </p>
-          <Button asChild>
-            <Link href="/landowner-dashboard/publish">List Your First Land</Link>
-          </Button>
+          <p className="text-stone-400 text-sm mt-1">
+            {!search && filter === "ALL" && "List your first land to get started"}
+          </p>
+          {filter === "ALL" && !search && (
+            <Link href="/landowner-dashboard/list-land">
+              <Button size="sm" className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold">
+                <PlusCircle className="h-4 w-4 mr-1.5" /> List a Land
+              </Button>
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((land: any) => (
+            <LandCard key={land.id} land={land} />
+          ))}
         </div>
       )}
     </div>
