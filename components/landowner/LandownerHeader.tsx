@@ -1,6 +1,6 @@
 "use client"
 
-import { Sprout, LayoutDashboard, MapPin, ClipboardList } from "lucide-react"
+import { Sprout, LayoutDashboard, MapPin, ClipboardList, FileText } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { UserAccountNav } from "./userAccountNav"
@@ -9,6 +9,7 @@ const landownerNavigation = [
     { name: "Overview", href: "/landowner-dashboard/dashboard", icon: LayoutDashboard },
     { name: "My Lands", href: "/landowner-dashboard/my-lands", icon: MapPin },
     { name: "Lease Requests", href: "/landowner-dashboard/applications", icon: ClipboardList },
+    { name: "Blog", href: "/blog", icon: FileText }
 ]
 
 export function LandownerHeader() {

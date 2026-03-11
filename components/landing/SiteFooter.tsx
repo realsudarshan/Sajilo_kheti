@@ -1,10 +1,27 @@
-import { Facebook, Instagram, Mail, MapPin, Phone, Twitter } from "lucide-react"
-import Link from "next/link"
+"use client"
 
+import { Facebook, Instagram, Mail, MapPin, Phone, Twitter, Loader2, CheckCircle2 } from "lucide-react"
+import Link from "next/link"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { subscribeToNewsletter } from "@/app/actions/subscribe"
 
 export function SiteFooter() {
+    const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+    async function handleAction(formData: FormData) {
+        setStatus("loading");
+        const result = await subscribeToNewsletter(formData);
+        if (result?.success) {
+            setStatus("success");
+            setTimeout(() => setStatus("idle"), 5000);
+        } else {
+            setStatus("error");
+            setTimeout(() => setStatus("idle"), 3000);
+        }
+    }
+
     return (
         <footer className="bg-gray-50 border-t border-gray-100 pt-16 pb-8">
             <div className="container mx-auto px-4 lg:px-6">
@@ -32,21 +49,21 @@ export function SiteFooter() {
                         </div>
                     </div>
 
-                    {/* Quick Links */}
+                    {/* Resources */}
                     <div>
-                        <h3 className="font-semibold text-gray-900 mb-6">Quick Links</h3>
+                        <h3 className="font-semibold text-gray-900 mb-6">Resources</h3>
                         <ul className="space-y-3">
                             <li>
-                                <Link href="#" className="text-gray-500 hover:text-emerald-600 text-sm">About Us</Link>
+                                <Link href="/docs" className="text-gray-500 hover:text-emerald-600 text-sm">Documentation</Link>
                             </li>
                             <li>
-                                <Link href="#how-it-works" className="text-gray-500 hover:text-emerald-600 text-sm">How it Works</Link>
+                                <Link href="/report" className="text-gray-500 hover:text-emerald-600 text-sm"> Reports</Link>
                             </li>
                             <li>
-                                <Link href="#benefits" className="text-gray-500 hover:text-emerald-600 text-sm">Benefits</Link>
+                                <Link href="/help" className="text-gray-500 hover:text-emerald-600 text-sm">Help Center</Link>
                             </li>
                             <li>
-                                <Link href="#stories" className="text-gray-500 hover:text-emerald-600 text-sm">Success Stories</Link>
+                                <Link href="/terms" className="text-gray-500 hover:text-emerald-600 text-sm">Terms of Service</Link>
                             </li>
                         </ul>
                     </div>
@@ -74,18 +91,36 @@ export function SiteFooter() {
                     <div>
                         <h3 className="font-semibold text-gray-900 mb-6">Stay Updated</h3>
                         <p className="text-gray-500 text-sm mb-4">
-                            Join our newsletter for the latest farming tips and updates.
+                            {status === "success" 
+                                ? "Check your email for confirmation!" 
+                                : "Join our newsletter for the latest farming tips and updates."}
                         </p>
-                        <form className="space-y-2">
+                        <form action={handleAction} className="space-y-2">
                             <Input
+                                name="email"
                                 type="email"
-                                placeholder="Enter your email"
-                                className="bg-white border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
+                                required
+                                placeholder={status === "success" ? "Subscribed! ✨" : "Enter your email"}
+                                disabled={status === "success"}
+                                className={`bg-white border-gray-200 focus:border-emerald-500 focus:ring-emerald-500 ${status === "error" ? "border-red-500" : ""}`}
                             />
-                            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                                Subscribe
+                            <Button 
+                                type="submit" 
+                                disabled={status !== "idle"}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                            >
+                                {status === "loading" ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : status === "success" ? (
+                                    <CheckCircle2 className="h-4 w-4" />
+                                ) : (
+                                    "Subscribe"
+                                )}
                             </Button>
                         </form>
+                        {status === "error" && (
+                           <p className="text-[10px] text-red-500 mt-1">Please try again later.</p>
+                        )}
                     </div>
                 </div>
 
@@ -94,8 +129,8 @@ export function SiteFooter() {
                         © {new Date().getFullYear()} Sajilo Kheti. All rights reserved.
                     </p>
                     <div className="flex gap-6 text-sm">
-                        <Link href="#" className="text-gray-400 hover:text-emerald-600">Privacy Policy</Link>
-                        <Link href="#" className="text-gray-400 hover:text-emerald-600">Terms of Service</Link>
+                        <Link href="/privacy" className="text-gray-400 hover:text-emerald-600">Privacy Policy</Link>
+                        <Link href="/terms" className="text-gray-400 hover:text-emerald-600">Terms of Service</Link>
                     </div>
                 </div>
             </div>

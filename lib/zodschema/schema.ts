@@ -44,6 +44,7 @@ export const VerifyOwnerSchema = z.object({
   Adress: z.string(),
   frontcitizenshippic: z.string(),
   backcitizenshippic: z.string(),
+  esewaNumber: z.string().regex(/^(98|97)\d{8}$/, "Enter a valid 10-digit eSewa mobile number"),
   citizenshipno: z.string().regex(
   /^\d{2}-\d{2}-\d{2}-\d{4,5}$/,
   {

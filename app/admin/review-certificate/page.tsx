@@ -1,8 +1,7 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useGetAllEscrowsForAdmin, useVerifyLegalDocuments } from "@/queryandmutation/index";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -10,242 +9,162 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { getAgreements } from "@/lib/api"
-
-interface LeaseAgreement {
-  landowner_id: string
-  landowner_name: string
-  landowner_certificate_url: string
-  landleaser_id: string
-  landleaser_name: string
-  landleaser_doc_url: string
-  status: "accepted" | "rejected" | "pending"
-  total_amount: number
-  amount_for_admin: number
-  duration_months: number
-}
-
-const statusColors = {
-  accepted: "bg-green-500/10 text-green-500",
-  rejected: "bg-red-500/10 text-red-500",
-  pending: "bg-yellow-500/10 text-yellow-500",
-}
-
-function AgreementTable({
-  agreements,
-  showActions = false,
-}: {
-  agreements: LeaseAgreement[]
-  showActions?: boolean
-}) {
-  const [imageDialog, setImageDialog] = useState<{
-    open: boolean
-    url: string
-    title: string
-  }>({ open: false, url: "", title: "" })
-
-  const openImage = (url: string, title: string) => {
-    setImageDialog({ open: true, url, title })
-  }
-
-  return (
-    <>
-      <Dialog
-        open={imageDialog.open}
-        onOpenChange={(open) => setImageDialog({ ...imageDialog, open })}
-      >
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>{imageDialog.title}</DialogTitle>
-          </DialogHeader>
-          <div className="aspect-[4/3] bg-muted rounded-md overflow-hidden">
-            <img
-              src={imageDialog.url}
-              alt={imageDialog.title}
-              className="w-full h-full object-contain"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Landowner</TableHead>
-              <TableHead>Landleaser</TableHead>
-              <TableHead>Documents</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Status</TableHead>
-              {showActions && <TableHead>Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {agreements.length > 0 ? (
-              agreements.map((agreement) => (
-                <TableRow key={`${agreement.landowner_id}-${agreement.landleaser_id}`}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{agreement.landowner_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {agreement.landowner_id}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{agreement.landleaser_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {agreement.landleaser_id}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          openImage(
-                            agreement.landowner_certificate_url,
-                            `${agreement.landowner_name} - Land Certificate`
-                          )
-                        }
-                      >
-                        Owner Doc
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          openImage(
-                            agreement.landleaser_doc_url,
-                            `${agreement.landleaser_name} - Leaser Document`
-                          )
-                        }
-                      >
-                        Leaser Doc
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">
-                        Rs {agreement.total_amount.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Admin: Rs {agreement.amount_for_admin}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{agreement.duration_months} months</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={statusColors[agreement.status]}
-                      variant="secondary"
-                    >
-                      {agreement.status.charAt(0).toUpperCase() +
-                        agreement.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  {showActions && (
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm">Accept</Button>
-                        <Button size="sm" variant="destructive">
-                          Decline
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={showActions ? 7 : 6}
-                  className="text-center text-muted-foreground"
-                >
-                  No agreements found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </>
-  )
-}
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { FileText, CheckCircle, XCircle, Loader2, ExternalLink } from "lucide-react";
 
 export default function ReviewCertificatePage() {
-  const { data: agreements = [], isLoading } = useQuery<LeaseAgreement[]>({
-    queryKey: ["agreements"],
-    queryFn: getAgreements,
-  })
-
-  const acceptedAgreements = agreements.filter(
-    (a) => a.status === "accepted"
-  )
-  const rejectedAgreements = agreements.filter(
-    (a) => a.status === "rejected"
-  )
-  const pendingAgreements = agreements.filter((a) => a.status === "pending")
+  // Using the custom hooks we defined
+  const { data: escrows, isLoading } = useGetAllEscrowsForAdmin();
+  const { mutate: verify, isPending: isProcessing } = useVerifyLegalDocuments();
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Review Land Certificate</h1>
-          <p className="text-muted-foreground">Loading agreements...</p>
-        </div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="animate-spin h-10 w-10 text-emerald-600" />
       </div>
-    )
+    );
   }
 
+  // Filtering data for the two tabs
+  const pending = escrows?.filter((e) => e.status === "HOLDING") || [];
+  const history = escrows?.filter((e) => e.status === "RELEASED") || [];
+
   return (
-    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Review Land Certificate</h1>
-        <p className="text-muted-foreground">
-          Review and approve lease agreements between landowners and landleasers.
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-4xl font-black uppercase tracking-tighter">
+          Admin Legal Review
+        </h1>
+        <p className="text-muted-foreground font-medium">
+          Review Malpot documents and release held escrow funds to owners.
         </p>
       </div>
 
       <Tabs defaultValue="pending" className="w-full">
-        <TabsList>
-          <TabsTrigger value="accepted">
-            Accepted ({acceptedAgreements.length})
+        <TabsList className="grid w-full grid-cols-2 max-w-[400px] bg-slate-100">
+          <TabsTrigger value="pending" className="font-bold">
+            Needs Action ({pending.length})
           </TabsTrigger>
-          <TabsTrigger value="rejected">
-            Rejected ({rejectedAgreements.length})
-          </TabsTrigger>
-          <TabsTrigger value="pending">
-            Pending ({pendingAgreements.length})
+          <TabsTrigger value="history" className="font-bold">
+            History ({history.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="accepted" className="mt-4">
-          <AgreementTable agreements={acceptedAgreements} />
+        <TabsContent value="pending" className="mt-6">
+          <EscrowTable 
+            data={pending} 
+            onAction={(id, act) => verify({ escrowId: id, action: act })} 
+            isProcessing={isProcessing}
+          />
         </TabsContent>
 
-        <TabsContent value="rejected" className="mt-4">
-          <AgreementTable agreements={rejectedAgreements} />
-        </TabsContent>
-
-        <TabsContent value="pending" className="mt-4">
-          <AgreementTable agreements={pendingAgreements} showActions />
+        <TabsContent value="history" className="mt-6">
+          <EscrowTable data={history} />
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
+}
+
+// Sub-component for the data table
+function EscrowTable({ 
+  data, 
+  onAction, 
+  isProcessing 
+}: { 
+  data: any[], 
+  onAction?: (id: string, action: "APPROVE" | "REJECT") => void,
+  isProcessing?: boolean 
+}) {
+  return (
+    <div className="border rounded-[1.2rem] bg-white overflow-hidden shadow-sm">
+      <Table>
+        <TableHeader className="bg-slate-50/50">
+          <TableRow>
+            <TableHead className="font-bold h-14">Parties Involved</TableHead>
+            <TableHead className="font-bold">Land Details</TableHead>
+            <TableHead className="font-bold">Legal Documents</TableHead>
+            <TableHead className="font-bold text-right">Verification</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="text-center py-24 text-gray-400 font-medium">
+                No escrow records found in this category.
+              </TableCell>
+            </TableRow>
+          ) : (
+            data.map((escrow) => (
+              <TableRow key={escrow.id} className="hover:bg-slate-50/30 transition-colors">
+                <TableCell className="py-5">
+                  <div className="space-y-1">
+                    <p className="font-black text-slate-900 leading-none">
+                      {escrow.owner?.name} <span className="text-[10px] text-slate-400 uppercase font-bold ml-1">Owner</span>
+                    </p>
+                    <p className="font-bold text-emerald-600 text-sm leading-none">
+                      {escrow.leaser?.name} <span className="text-[10px] text-slate-400 uppercase font-bold ml-1">Leaser</span>
+                    </p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <p className="font-bold text-sm text-slate-800">{escrow.application?.land?.title}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider">{escrow.application?.land?.location}</p>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs font-bold border-slate-200"
+                      onClick={() => window.open(escrow.landownerMalpotUrl, '_blank')}
+                    >
+                      <FileText className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Owner Paper
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs font-bold border-slate-200"
+                      onClick={() => window.open(escrow.landleaserMalpotUrl, '_blank')}
+                    >
+                      <FileText className="h-3.5 w-3.5 mr-1.5 text-blue-600" /> Leaser Paper
+                    </Button>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  {onAction ? (
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        className="text-red-600 hover:bg-red-50 font-black h-9 px-4"
+                        onClick={() => onAction(escrow.id, "REJECT")}
+                        disabled={isProcessing}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" /> REJECT
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="bg-emerald-600 hover:bg-emerald-700 font-black h-9 px-4 shadow-sm"
+                        onClick={() => onAction(escrow.id, "APPROVE")}
+                        disabled={isProcessing}
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" /> VERIFY & PAY
+                      </Button>
+                    </div>
+                  ) : (
+                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none px-3 py-1 font-black">
+                      RELEASED
+                    </Badge>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }

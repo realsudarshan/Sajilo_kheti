@@ -61,6 +61,7 @@ export default function VerifyLandowner() {
       FullName: "",
       Adress: "",
       citizenshipno: "",
+      esewaNumber: "", // Initializing new field
       frontcitizenshippic: "",
       backcitizenshippic: "",
     },
@@ -126,15 +127,10 @@ export default function VerifyLandowner() {
     }
   };
 
-  // Autocomplete Specific Handler
   const onPlaceChanged = () => {
     if (autocompleteRef.current) {
       const place = autocompleteRef.current.getPlace();
-      
-      // 1. Get Place Name (e.g., "Kalanki" or "Tribhuvan University")
       const placeName = place.name || "";
-
-      // 2. Extract District (administrative_area_level_2 in Nepal)
       let district = "";
       if (place.address_components) {
         const districtComp = place.address_components.find(c => 
@@ -142,10 +138,7 @@ export default function VerifyLandowner() {
         );
         district = districtComp?.long_name.replace(" District", "") || "";
       }
-
-      // 3. Format: "Place, District"
       const formatted = district ? `${placeName}, ${district}` : placeName;
-      
       if (formatted) {
         form.setValue("Adress", formatted, { shouldValidate: true });
       }
@@ -162,11 +155,14 @@ export default function VerifyLandowner() {
         startSelfieUpload([selfieFile])
       ]);
       if (!czRes || !selfieRes) throw new Error("Upload failed");
+      
       await upgradeRequest.mutateAsync({
-        citizenshipNumber: values.citizenshipno,
+        paymentNumber: values.esewaNumber, // Sending eSewa number to backend
+        citizenshipNumber: values.citizenshipno, // Sending eSewa data to backend
         documentUrl: czRes[0].ufsUrl || czRes[0].url,
         selfieUrl: selfieRes[0].ufsUrl || selfieRes[0].url,
       });
+
       toast.success("Submitted!", { id: loadingToast });
       queryClient.invalidateQueries({ queryKey: ["kycDetails"] });
     } catch (e: any) {
@@ -184,6 +180,10 @@ export default function VerifyLandowner() {
         <Card>
           <CardHeader><CardTitle>Status: <Badge>{kycDetails.status}</Badge></CardTitle></CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+               <div><p className="text-sm text-gray-500">Name</p><p className="font-medium">{kycDetails.FullName || "N/A"}</p></div>
+               <div><p className="text-sm text-gray-500">eSewa ID</p><p className="font-medium text-emerald-600">{kycDetails.esewaNumber || "N/A"}</p></div>
+            </div>
             <div><p className="text-sm text-gray-500">Address</p><p className="font-medium">{kycDetails.Adress || "N/A"}</p></div>
             <div className="grid grid-cols-2 gap-4">
               <img src={kycDetails.documentUrl} alt="ID" className="rounded border aspect-video object-cover" />
@@ -197,7 +197,7 @@ export default function VerifyLandowner() {
 
   return (
     <div className="max-w-2xl mx-auto p-8 bg-white rounded-2xl border mt-10 shadow-sm">
-      <h2 className="text-2xl font-bold mb-6">Identity Verification</h2>
+      <h2 className="text-2xl font-bold mb-6">Identity & Payment Verification</h2>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -212,35 +212,36 @@ export default function VerifyLandowner() {
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="Adress"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Address (Place, District)</FormLabel>
+                <FormControl>
+                  {isLoaded ? (
+                    <Autocomplete
+                      onLoad={(ac) => { autocompleteRef.current = ac }}
+                      onPlaceChanged={onPlaceChanged}
+                      options={{
+                        componentRestrictions: { country: "np" },
+                        types: ["geocode", "establishment"],
+                      }}
+                    >
+                      <Input 
+                        placeholder="Search landmark or city..." 
+                        {...field} 
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                      />
+                    </Autocomplete>
+                  ) : <Skeleton className="h-10 w-full" />}
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="Adress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address (Place, District)</FormLabel>
-                  <FormControl>
-                    {isLoaded ? (
-                      <Autocomplete
-                        onLoad={(ac) => { autocompleteRef.current = ac }}
-                        onPlaceChanged={onPlaceChanged}
-                        options={{
-                          componentRestrictions: { country: "np" },
-                          types: ["geocode", "establishment"], // Essential for Nepal landmarks
-                        }}
-                      >
-                        <Input 
-                          placeholder="Search landmark or city..." 
-                          {...field} 
-                          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-                        />
-                      </Autocomplete>
-                    ) : <Skeleton className="h-10 w-full" />}
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="citizenshipno"
@@ -248,6 +249,18 @@ export default function VerifyLandowner() {
                 <FormItem>
                   <FormLabel>Citizenship No.</FormLabel>
                   <FormControl><Input placeholder="00-00-00-00000" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/* Added Payment Detail Field */}
+            <FormField
+              control={form.control}
+              name="esewaNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>eSewa Phone Number</FormLabel>
+                  <FormControl><Input type="tel" placeholder="98XXXXXXXX" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -276,7 +289,7 @@ export default function VerifyLandowner() {
           </div>
 
           <Button type="submit" className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold" disabled={isProcessing}>
-            {isProcessing ? "Analyzing..." : "Submit Application"}
+            {isProcessing ? "Processing Submission..." : "Submit Verification"}
           </Button>
         </form>
       </Form>

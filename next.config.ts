@@ -1,10 +1,19 @@
-import type { NextConfig } from "next";
+// next.config.ts
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  images: {
-    domains: ["images.unsplash.com", "i.pravatar.cc"],
-  }
-};
+  // Required to prevent Sanity studio from being server-rendered
+  // which causes "createContext is not a function" with Next.js vendored React
+  serverExternalPackages: ['sanity', '@sanity/client', '@sanity/vision'],
 
-export default nextConfig;
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.sanity.io',
+      },
+    ],
+  },
+}
+
+export default nextConfig
