@@ -165,7 +165,7 @@ const { data: user } = useGetMe();
               </div>
             ) : (
               <div className="space-y-2 w-full">
-                <Link href={`/landowner-dashboard/navigate/malpot/${landId}`} className="w-full">
+                <Link href={`/navigate/malpot/${landId}`} className="w-full">
                   <Button
                     variant="outline"
                     size="sm"
@@ -175,7 +175,7 @@ const { data: user } = useGetMe();
                   </Button>
                 </Link>
 
-                <Link href={`/landowner-dashboard/navigate/land/${landId}`} className="w-full">
+                <Link href={`/navigate/land/${landId}`} className="w-full">
                   <Button
                     variant="outline"
                     size="sm"
