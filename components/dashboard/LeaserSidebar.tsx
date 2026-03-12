@@ -24,6 +24,7 @@ const NAV = [
   { href: "/dashboard/my-leases", label: "My Applications", icon: FileText },
   { href: "/dashboard/escrow", label: "Escrow & Payments", icon: ShieldCheck },
   { href: "/dashboard/agreements", label: "Agreements", icon: ScrollText },
+  { href: "/blog", label: "Blog", icon: Sprout },
 ]
 
 export function LeaserSidebar() {

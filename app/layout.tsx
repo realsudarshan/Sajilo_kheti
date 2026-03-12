@@ -28,9 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className="overflow-x-hidden">
+      <html lang="en" className="overflow-x-hidden" suppressHydrationWarning>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
+          suppressHydrationWarning
         >
           <TRPCProvider>
             <UserSync />
