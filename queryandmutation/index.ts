@@ -24,13 +24,6 @@ export const useSearchLands = (filters: {
     maxSize?: number;
 }) => trpc.land.search.useQuery(filters);
 
-export const useLands = () => {
-    const query = trpc.land.search.useQuery({});
-    return {
-        ...query,
-        data: query.data?.lands
-    };
-};
 
 export const useGetLandById = (landId: string) => {
     return trpc.land.getById.useQuery({ landId }, {
@@ -74,11 +67,7 @@ export const useSubmitLeaseApplication = () => trpc.lease.Submitapplication.useM
 export const useAcceptLeaseApplication = () => trpc.lease.AcceptApplication.useMutation();
 export const useRejectLeaseApplication = () => trpc.lease.RejectApplication.useMutation();
 
-export const useGetApplicationById = (applicationId: string) => {
-    return trpc.lease.GetApplicationById.useQuery({ applicationId }, {
-        enabled: !!applicationId
-    });
-};
+
 //owner
 export const useGetAllApplications = (filters: {
     status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED';
@@ -91,9 +80,6 @@ export const useGetAllApplications = (filters: {
 // ============================================================================
 // ESCROW HOOKS
 // ============================================================================
-export const usePayEscrow = () => trpc.escrow.PayEscrow.useMutation();
-export const useVerifyMalpotPapers = () => trpc.escrow.VerifyMalpotPapers.useMutation();
-
 export const useGetMyAcceptedApplications = (filters: {
     landId?: string;
 } = {}) => {

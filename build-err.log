@@ -1,0 +1,28 @@
+
+> sajilokheti@0.1.0 build D:\sajilokheti\Sajilo_kheti
+> next build
+
+Γû▓ Next.js 16.1.1 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 27.1s
+  Running TypeScript ...
+Failed to compile.
+
+./app/(auth)/sign-up/page.tsx:25:14
+Type error: No overload matches this call.
+  Overload 1 of 2, '(value: readonly Literal[], params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodLiteral<...>', gave the following error.
+    Argument of type 'boolean' is not assignable to parameter of type 'readonly Literal[]'.
+  Overload 2 of 2, '(value: true, params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodLiteral<...>', gave the following error.
+    Object literal may only specify known properties, and 'errorMap' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; }'.
+
+  23 |     email: z.string().min(1, "Email is required").email("Invalid email address"),
+  24 |     // Validation: Must be true
+> 25 |     terms: z.literal(true, {
+     |              ^
+  26 |       errorMap: () => ({ message: "You must accept the terms to continue" }),
+  27 |     }),
+  28 |     password: z
+Next.js build worker exited with code: 1 and signal: null
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.

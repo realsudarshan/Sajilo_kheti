@@ -28,8 +28,8 @@ export default function ReviewCertificatePage() {
     );
   }
 
-  const pending = escrows.filter((e) => e.status === "HOLDING");
-  const history = escrows.filter((e) => e.status === "RELEASED");
+  const pending = escrows.filter((e: any) => e.status === "HOLDING");
+  const history = escrows.filter((e: any) => e.status === "RELEASED");
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">

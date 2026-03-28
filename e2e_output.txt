@@ -1,0 +1,40 @@
+
+> sajilokheti@0.1.0 test:e2e D:\sajilokheti\Sajilo_kheti
+> playwright test
+
+[dotenv@17.2.2] injecting env (26) from .env.local,.env -- tip: ≡ƒôí auto-backup env with Radar: https://dotenvx.com/radar
+
+Running 7 tests using 7 workers
+
+  -  1 [chromium] ΓÇ║ e2e\authenticated-flows.spec.ts:52:8 ΓÇ║ E2E / system (staging-only) ΓÇ║ tenant: browse lands, filters, land detail
+  -  2 [chromium] ΓÇ║ e2e\authenticated-flows.spec.ts:54:8 ΓÇ║ E2E / system (staging-only) ΓÇ║ proposal: submit ΓåÆ owner dashboard lists application
+  -  3 [chromium] ΓÇ║ e2e\authenticated-flows.spec.ts:56:8 ΓÇ║ E2E / system (staging-only) ΓÇ║ lease + GetStream: escrow mock unlocks chat
+  Γ£ô  6 [chromium] ΓÇ║ e2e\smoke.spec.ts:17:7 ΓÇ║ Public pages ΓÇ║ terms page loads (static, no CMS) (2.2s)
+  Γ£ô  4 [chromium] ΓÇ║ e2e\smoke.spec.ts:9:7 ΓÇ║ Public pages ΓÇ║ login page shows welcome and email field (2.3s)
+  Γ£ô  5 [chromium] ΓÇ║ e2e\smoke.spec.ts:4:7 ΓÇ║ Public pages ΓÇ║ home loads (2.5s)
+  Γ£ÿ  7 [chromium] ΓÇ║ e2e\authenticated-flows.spec.ts:4:7 ΓÇ║ E2E / system (staging-only) ΓÇ║ sign-up, login, role-based redirect (Playwright) (8.0s)
+
+
+  1) [chromium] ΓÇ║ e2e\authenticated-flows.spec.ts:4:7 ΓÇ║ E2E / system (staging-only) ΓÇ║ sign-up, login, role-based redirect (Playwright) 
+
+    TimeoutError: locator.waitFor: Timeout 5000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('input[name="code"]') to be visible[22m
+
+
+      30 |     const otpInput = page.locator('input[name="code"]');
+      31 |     try {
+    > 32 |       await otpInput.waitFor({ state: "visible", timeout: 5000 });
+         |                      ^
+      33 |     } catch (e) {
+      34 |       // If OTP input is not visible, check if there's an error message
+      35 |       const errorDiv = page.locator('.text-red-600');
+        at D:\sajilokheti\Sajilo_kheti\e2e\authenticated-flows.spec.ts:32:22
+
+    Error Context: test-results\authenticated-flows-E2E-sy-c5e45--based-redirect-Playwright--chromium\error-context.md
+
+  1 failed
+    [chromium] ΓÇ║ e2e\authenticated-flows.spec.ts:4:7 ΓÇ║ E2E / system (staging-only) ΓÇ║ sign-up, login, role-based redirect (Playwright) 
+  3 skipped
+  3 passed (12.9s)
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.

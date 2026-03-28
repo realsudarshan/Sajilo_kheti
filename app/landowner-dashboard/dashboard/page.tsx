@@ -25,6 +25,7 @@ import {
   useGetMyOwnerEscrows,
 } from "@/queryandmutation";
 import { useUser } from "@clerk/nextjs";
+import { EnablePushNotifications } from "@/components/ui/enable-push-notifications";
 
 // ─── Status badge helper ──────────────────────────────────────────────────────
 const LandStatusBadge = ({ status }: { status: string }) => {
@@ -128,6 +129,8 @@ export default function LandownerDashboardPage() {
           </Button>
         </Link>
       </div>
+
+      <EnablePushNotifications />
 
       {/* ── KYC warning if unverified ── */}
       {!meLoading && !me?.isKycVerified && (

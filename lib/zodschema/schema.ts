@@ -23,19 +23,7 @@ export const LandSizeSchema = z.discriminatedUnion("system", [
   }),
 ])
 
-export const publishLandInputSchema = z.object({
-  title: z.string().min(5, "Title is too short").max(100),
-  location: z.string().min(1, "Location is required"),
-  size: LandSizeSchema,
-  price: z.number().positive("Price must be greater than 0"),
-  description: z.string().min(10, "Please provide a more detailed description"),
-  landpic: z.string().url("Display image URL is required"),
-  morelandpic: z.array(z.string().url()).default([]),
-  lalpurjaUrl: z.string().url().optional().nullable(),
-})
 
-export type LandFormData = z.infer<typeof publishLandInputSchema>
-export type LandSize = z.infer<typeof LandSizeSchema>
 
 export const VerifyOwnerSchema = z.object({
   FullName: z.string().min(2, {
@@ -53,13 +41,4 @@ export const VerifyOwnerSchema = z.object({
 )
 })
 
-
-export const requestedLeaseInputSchema = z.object({
-  landId: z.string().min(1, "Land ID is required"),
-  leaseDurationInMonths: z.number().positive("Duration must be a positive number"),
-  proposedMonthlyRent: z.number().positive("Rent must be a positive number"),
-  plans: z.string().min(10, "Please provide more detail about your plans"),
-  additionalMessages: z.string().optional(),
-});
-
-export type RequestedLeaseInput = z.infer<typeof requestedLeaseInputSchema>;
+

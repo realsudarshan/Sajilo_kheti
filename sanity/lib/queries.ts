@@ -54,22 +54,7 @@ export const ALL_CATEGORIES_QUERY = `
   }
 `
 
-export const POSTS_BY_CATEGORY_QUERY = `
-  *[_type == "post" && category->slug.current == $slug] | order(publishedAt desc) {
-    _id,
-    title,
-    slug,
-    excerpt,
-    heroImage,
-    publishedAt,
-    authorId,
-    authorName,
-    authorImage,
-    "upvoteCount": count(upvotes),
-    "commentCount": count(*[_type == "comment" && references(^._id)]),
-    category-> { title, slug }
-  }
-`
+
 export const LATEST_POSTS_QUERY = `
   *[_type == "post"] | order(publishedAt desc) [0...3] {
     _id,

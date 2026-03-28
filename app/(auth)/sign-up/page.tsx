@@ -23,7 +23,7 @@ const registerSchema = z
     email: z.string().min(1, "Email is required").email("Invalid email address"),
     // Validation: Must be true
     terms: z.literal(true, {
-      errorMap: () => ({ message: "You must accept the terms to continue" }),
+      message: "You must accept the terms to continue",
     }),
     password: z
       .string()
@@ -270,6 +270,9 @@ export default function SignUpPage() {
           </div>
 
           {serverError && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{serverError}</div>}
+
+          {/* Clerk Bot Detection (Captcha) mount point */}
+          <div id="clerk-captcha" />
 
           <button type="submit" disabled={registerForm.formState.isSubmitting} className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold py-2.5 transition-colors">
             {registerForm.formState.isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
