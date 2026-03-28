@@ -52,6 +52,7 @@
     "next": "16.1.1",
     "next-sanity": "^11.6.12",
     "next-themes": "^0.4.6",
+    "posthog-js": "^1.364.1",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",

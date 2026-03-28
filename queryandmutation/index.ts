@@ -79,7 +79,7 @@ export const useGetApplicationById = (applicationId: string) => {
         enabled: !!applicationId
     });
 };
-
+//owner
 export const useGetAllApplications = (filters: {
     status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED';
     landId?: string;

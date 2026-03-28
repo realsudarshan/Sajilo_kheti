@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
-
+import { PostHogProvider } from '@/components/providers/PosthogProvider';
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,11 +33,13 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
           suppressHydrationWarning
         >
+          <PostHogProvider>
           <TRPCProvider>
             <UserSync />
             {children}
           </TRPCProvider>
           <Toaster position="top-center" />
+          </PostHogProvider>
         </body>
       </html>
     </ClerkProvider>
