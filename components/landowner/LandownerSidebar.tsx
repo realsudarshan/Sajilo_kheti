@@ -1,12 +1,9 @@
-// FILE: app/landowner-dashboard/layout.tsx
-// ROUTE: Wraps ALL /landowner-dashboard/* pages (sidebar + mobile nav)
-
+// components/landowner/LandownerSidebar.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton, SignedIn, useClerk, useUser } from "@clerk/nextjs";
-import { ChatProvider } from "@/components/chat/ChatProvider";
 import {
   LayoutDashboard,
   MapPin,
@@ -56,23 +53,16 @@ const secondaryItems = [
   { label: "KYC Status", href: "/dashboard/verify-landowner", icon: ShieldCheck },
 ];
 
-export default function LandownerLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function LandownerSidebar() {
   const pathname = usePathname();
   const { data: me } = useGetMe();
   const { user } = useUser();
   const { signOut, openUserProfile } = useClerk();
 
   return (
-    <div className="flex min-h-screen bg-[#f8f7f4] font-sans">
-
+    <>
       {/* ── Sidebar ─────────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-stone-200 fixed inset-y-0 z-40">
-
-        {/* Logo */}
         <div className="flex items-center gap-2.5 px-6 py-5 border-b border-stone-100">
           <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
             <span className="text-white text-sm font-bold">🌾</span>
@@ -83,7 +73,6 @@ export default function LandownerLayout({
           </div>
         </div>
 
-        {/* KYC verified badge */}
         {me?.isKycVerified && (
           <div className="mx-4 mt-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
             <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -91,11 +80,8 @@ export default function LandownerLayout({
           </div>
         )}
 
-        {/* Nav links */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          <p className="px-3 pb-2 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-            Manage
-          </p>
+          <p className="px-3 pb-2 text-[10px] font-bold text-stone-400 uppercase tracking-widest">Manage</p>
           {navItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -119,9 +105,7 @@ export default function LandownerLayout({
           })}
 
           <div className="pt-4">
-            <p className="px-3 pb-2 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-              More
-            </p>
+            <p className="px-3 pb-2 text-[10px] font-bold text-stone-400 uppercase tracking-widest">More</p>
             {secondaryItems.map((item) => {
               const active = pathname === item.href;
               return (
@@ -130,9 +114,7 @@ export default function LandownerLayout({
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                    active
-                      ? "bg-emerald-600 text-white"
-                      : "text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                    active ? "bg-emerald-600 text-white" : "text-stone-500 hover:bg-stone-100 hover:text-stone-700"
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
@@ -143,16 +125,9 @@ export default function LandownerLayout({
           </div>
         </nav>
 
-        {/* ── Account panel ───────────────────────────────────── */}
         <div className="border-t border-stone-100 p-3 space-y-0.5">
-
-          {/* Avatar + name + email */}
           <div className="flex items-center gap-3 px-2 py-2.5">
-            <UserButton
-              appearance={{
-                elements: { avatarBox: "w-9 h-9 rounded-xl shrink-0" },
-              }}
-            />
+            <UserButton appearance={{ elements: { avatarBox: "w-9 h-9 rounded-xl shrink-0" } }} />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-stone-900 truncate">
                 {user?.fullName ?? user?.firstName ?? "Landowner"}
@@ -162,34 +137,26 @@ export default function LandownerLayout({
               </p>
             </div>
           </div>
-
-          {/* Manage Account — opens Clerk's built-in user profile modal */}
           <SignedIn>
             <button
               onClick={() => openUserProfile()}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition-colors"
             >
-              <Settings className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-              Manage Account
+              <Settings className="h-3.5 w-3.5 shrink-0 text-stone-400" /> Manage Account
             </button>
           </SignedIn>
-
-          {/* Sign Out */}
           <SignedIn>
             <button
               onClick={() => signOut({ redirectUrl: "/login" })}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
             >
-              <LogOut className="h-3.5 w-3.5 shrink-0" />
-              Sign Out
+              <LogOut className="h-3.5 w-3.5 shrink-0" /> Sign Out
             </button>
           </SignedIn>
-
         </div>
       </aside>
 
       {/* ── Mobile top bar ─────────────────────────────────── */}
-      {/* On mobile, UserButton popup still gives access to manage account + sign out */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-white border-b border-stone-200 flex items-center justify-between px-4 h-14">
         <Link href="/landowner-dashboard/dashboard" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
@@ -197,11 +164,7 @@ export default function LandownerLayout({
           </div>
           <span className="font-black text-sm text-stone-900">SajiloKheti</span>
         </Link>
-        <UserButton
-          appearance={{
-            elements: { avatarBox: "w-8 h-8 rounded-xl" },
-          }}
-        />
+        <UserButton appearance={{ elements: { avatarBox: "w-8 h-8 rounded-xl" } }} />
       </header>
 
       {/* ── Mobile bottom nav ──────────────────────────────── */}
@@ -223,15 +186,6 @@ export default function LandownerLayout({
           );
         })}
       </nav>
-
-      {/* ── Main content ────────────────────────────────────── */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 pb-16 lg:pb-0 min-h-screen relative">
-        {children}
-        {/* Floating lease chat for the landowner */}
-        <ChatProvider role="owner" />
-      </main>
-
-
-    </div>
+    </>
   );
-} 
+}

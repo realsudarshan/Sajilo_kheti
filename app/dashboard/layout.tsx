@@ -1,18 +1,22 @@
-import { SidebarProvider } from "@/components/ui/sidebar"
+// dashboard/layout.tsx
 import { RoleGate } from "@/components/auth/RoleGate"
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
+import { LeaserSidebar } from "@/components/dashboard/LeaserSidebar"
+import { ChatProvider } from "@/components/chat/ChatProvider"
 
-export default function LandownerLayout({ children }: { children: React.ReactNode }) {
+export default function LeaserDashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <RoleGate>
-      {/* SidebarProvider must wrap anything that uses useSidebar() */}
-      <SidebarProvider defaultOpen={false}> 
-        
-        <div className="flex flex-col min-h-screen w-full">
-            <DashboardHeader/>
+      <div className="flex h-screen overflow-hidden bg-[#F6F7F5]">
+        {/* Sidebar — fixed height, never scrolls */}
+        <LeaserSidebar />
+
+        {/* Main content — scrolls independently */}
+        <main className="flex-1 min-w-0 h-screen overflow-y-auto relative">
           {children}
-        </div>
-      </SidebarProvider>
+          {/* Floating lease chat for the leaser */}
+          <ChatProvider role="leaser" />
+        </main>
+      </div>
     </RoleGate>
   )
 }

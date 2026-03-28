@@ -1,6 +1,6 @@
 "use client";
 
-import { useGetAllEscrowsForAdmin, useVerifyLegalDocuments } from "@/queryandmutation/index";
+import { useGetAllAgreementEscrowsForAdmin, useVerifyLegalDocuments } from "@/queryandmutation/index";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -12,12 +12,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, CheckCircle, XCircle, Loader2, ExternalLink } from "lucide-react";
+import { FileText, CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 export default function ReviewCertificatePage() {
-  // Using the custom hooks we defined
-  const { data: escrows, isLoading } = useGetAllEscrowsForAdmin();
+  const { data, isLoading } = useGetAllAgreementEscrowsForAdmin();
   const { mutate: verify, isPending: isProcessing } = useVerifyLegalDocuments();
+
+  const escrows = data?.escrows ?? [];
 
   if (isLoading) {
     return (
@@ -27,9 +28,8 @@ export default function ReviewCertificatePage() {
     );
   }
 
-  // Filtering data for the two tabs
-  const pending = escrows?.filter((e) => e.status === "HOLDING") || [];
-  const history = escrows?.filter((e) => e.status === "RELEASED") || [];
+  const pending = escrows.filter((e) => e.status === "HOLDING");
+  const history = escrows.filter((e) => e.status === "RELEASED");
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
@@ -53,9 +53,9 @@ export default function ReviewCertificatePage() {
         </TabsList>
 
         <TabsContent value="pending" className="mt-6">
-          <EscrowTable 
-            data={pending} 
-            onAction={(id, act) => verify({ escrowId: id, action: act })} 
+          <EscrowTable
+            data={pending}
+            onAction={(id, act) => verify({ escrowId: id, action: act })}
             isProcessing={isProcessing}
           />
         </TabsContent>
@@ -68,15 +68,14 @@ export default function ReviewCertificatePage() {
   );
 }
 
-// Sub-component for the data table
-function EscrowTable({ 
-  data, 
-  onAction, 
-  isProcessing 
-}: { 
-  data: any[], 
-  onAction?: (id: string, action: "APPROVE" | "REJECT") => void,
-  isProcessing?: boolean 
+function EscrowTable({
+  data,
+  onAction,
+  isProcessing,
+}: {
+  data: any[];
+  onAction?: (id: string, action: "APPROVE" | "REJECT") => void;
+  isProcessing?: boolean;
 }) {
   return (
     <div className="border rounded-[1.2rem] bg-white overflow-hidden shadow-sm">
@@ -102,10 +101,12 @@ function EscrowTable({
                 <TableCell className="py-5">
                   <div className="space-y-1">
                     <p className="font-black text-slate-900 leading-none">
-                      {escrow.owner?.name} <span className="text-[10px] text-slate-400 uppercase font-bold ml-1">Owner</span>
+                      {escrow.owner?.name}{" "}
+                      <span className="text-[10px] text-slate-400 uppercase font-bold ml-1">Owner</span>
                     </p>
                     <p className="font-bold text-emerald-600 text-sm leading-none">
-                      {escrow.leaser?.name} <span className="text-[10px] text-slate-400 uppercase font-bold ml-1">Leaser</span>
+                      {escrow.leaser?.name}{" "}
+                      <span className="text-[10px] text-slate-400 uppercase font-bold ml-1">Leaser</span>
                     </p>
                   </div>
                 </TableCell>
@@ -115,19 +116,19 @@ function EscrowTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="h-8 text-xs font-bold border-slate-200"
-                      onClick={() => window.open(escrow.landownerMalpotUrl, '_blank')}
+                      onClick={() => window.open(escrow.landownerMalpotUrl, "_blank")}
                     >
                       <FileText className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Owner Paper
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="h-8 text-xs font-bold border-slate-200"
-                      onClick={() => window.open(escrow.landleaserMalpotUrl, '_blank')}
+                      onClick={() => window.open(escrow.landleaserMalpotUrl, "_blank")}
                     >
                       <FileText className="h-3.5 w-3.5 mr-1.5 text-blue-600" /> Leaser Paper
                     </Button>
@@ -136,8 +137,8 @@ function EscrowTable({
                 <TableCell className="text-right">
                   {onAction ? (
                     <div className="flex justify-end gap-2">
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="ghost"
                         className="text-red-600 hover:bg-red-50 font-black h-9 px-4"
                         onClick={() => onAction(escrow.id, "REJECT")}
@@ -145,8 +146,8 @@ function EscrowTable({
                       >
                         <XCircle className="mr-2 h-4 w-4" /> REJECT
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="bg-emerald-600 hover:bg-emerald-700 font-black h-9 px-4 shadow-sm"
                         onClick={() => onAction(escrow.id, "APPROVE")}
                         disabled={isProcessing}

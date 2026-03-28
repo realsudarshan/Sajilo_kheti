@@ -79,7 +79,7 @@ export const useGetApplicationById = (applicationId: string) => {
         enabled: !!applicationId
     });
 };
-
+//owner
 export const useGetAllApplications = (filters: {
     status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED';
     landId?: string;
@@ -146,3 +146,24 @@ export const useGetMyLands = (filters?: {
 }) => {
   return trpc.land.getMyLands.useQuery(filters ?? {});
 };  
+export const useGetMyApplications = (filters: {
+  status?: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED";
+} = {}) => {
+  return trpc.lease.GetMyApplications.useQuery(filters);
+};
+export const useGetMyLeaserApplications = (input?: {
+  landId?: string;
+  status?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+}) => {
+  return trpc.lease.GetMyLeaserApplications.useQuery(input ?? {}, {
+    enabled: true,
+  });
+};
+export const useGetAllAgreementEscrowsForAdmin = () => {
+    return trpc.escrow.GetAllEscrowsAgreementForAdmin.useQuery();
+};
+
+
+
+
+

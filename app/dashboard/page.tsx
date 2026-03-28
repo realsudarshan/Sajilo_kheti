@@ -1,192 +1,252 @@
+// dashboard/page.tsx
 "use client"
 
-import React, { useState } from "react"
 import Link from "next/link"
-import { 
-  LayoutDashboard, 
-  Map as MapIcon, 
-  History, 
-  TrendingUp, 
-  Search,
-  ChevronRight,
-  ArrowUpRight,
-  User,
-  Ruler,
-  BadgeDollarSign
+import { useGetMe, useGetMyApplications, useGetMyEscrows } from "@/queryandmutation"
+import {
+  MapPin, FileText, ShieldCheck, Search,
+  ArrowRight, CheckCircle2, Clock, XCircle,
+  AlertTriangle, TrendingUp,
 } from "lucide-react"
+import { Button }   from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn }       from "@/lib/utils"
 
-// Assuming these are in your project
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
+function fmtNPR(n: number) {
+  return `₨ ${n.toLocaleString("en-NP")}`
+}
 
-// --- MOCK DATA ---
-const MOCK_LEASES = [
-  {
-    id: "LND-001",
-    title: "Green Valley Fields",
-    location: "Lalitpur, Nepal",
-    size: "15 Ropani",
-    price: "रू 50,000/year",
-    status: "Active",
-    owner: "Sita Sharma",
-    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=500&auto=format&fit=crop"
-  },
-  {
-    id: "LND-002",
-    title: "Mountain Side Organic",
-    location: "Kavre, Nepal",
-    size: "10 Ropani",
-    price: "रू 35,000/year",
-    status: "Pending",
-    owner: "Ram Bahadur",
-    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=500&auto=format&fit=crop"
+const APP_STATUS_CFG: Record<string, {
+  label: string; color: string; bg: string; icon: React.ReactNode
+}> = {
+  PENDING:   { label: "Pending",   color: "text-amber-700",   bg: "bg-amber-50",   icon: <Clock        className="w-3 h-3" /> },
+  ACCEPTED:  { label: "Accepted",  color: "text-emerald-700", bg: "bg-emerald-50", icon: <CheckCircle2 className="w-3 h-3" /> },
+  REJECTED:  { label: "Rejected",  color: "text-red-600",     bg: "bg-red-50",     icon: <XCircle      className="w-3 h-3" /> },
+  COMPLETED: { label: "Completed", color: "text-blue-700",    bg: "bg-blue-50",    icon: <CheckCircle2 className="w-3 h-3" /> },
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = APP_STATUS_CFG[status] ?? {
+    label: status, color: "text-stone-600", bg: "bg-stone-50", icon: null,
   }
-]
-
-export default function LeaserDashboard() {
-  const [activeLand, setActiveLand] = useState(MOCK_LEASES[0])
-
   return (
-    <>
-    
-    <div className="min-h-screen bg-[#F9FAFB] text-slate-900 p-6 md:p-10">
-       
-      <div className="max-w-7xl mx-auto space-y-10">
-        
-        {/* --- TOP NAVIGATION / HEADER --- */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Dashboard</h1>
-            <p className="text-slate-500 font-medium">Monitoring your leased land and applications.</p>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" className="rounded-xl border-slate-200 shadow-sm">
-              <History className="mr-2 h-4 w-4" /> History
-            </Button>
-            <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200">
-              <Search className="mr-2 h-4 w-4" /> Find New Land
-            </Button>
-          </div>
-        </header>
-
-        {/* --- STATS GRID --- */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard label="Active Leases" value="04" trend="+1 this month" icon={<MapIcon className="text-emerald-600"/>} />
-          <StatCard label="Pending Apps" value="02" trend="Awaiting owner" icon={<TrendingUp className="text-blue-600"/>} />
-          <StatCard label="Total Spent" value="रू 1.2M" trend="Annualized" icon={<BadgeDollarSign className="text-amber-600"/>} />
-        </section>
-
-        {/* --- MAIN INTERFACE --- */}
-        <Tabs defaultValue="overview" className="space-y-8">
-          <TabsList className="bg-slate-100/50 p-1 rounded-2xl inline-flex border border-slate-200">
-            <TabsTrigger value="overview" className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
-            <TabsTrigger value="applications" className="rounded-xl px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">Applications</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* LEFT: LIST OF LANDS */}
-            <div className="lg:col-span-7 space-y-4">
-              <h3 className="text-lg font-bold px-1">Current Leases</h3>
-              <div className="grid gap-4">
-                {MOCK_LEASES.map((land) => (
-                  <div 
-                    key={land.id}
-                    onClick={() => setActiveLand(land)}
-                    className={`group cursor-pointer p-4 rounded-3xl border-2 transition-all flex gap-5 items-center bg-white ${
-                      activeLand.id === land.id ? 'border-emerald-500 shadow-xl' : 'border-transparent hover:border-slate-200 shadow-sm'
-                    }`}
-                  >
-                    <div className="h-24 w-24 rounded-2xl overflow-hidden flex-shrink-0">
-                      <img src={land.image} alt={land.title} className="h-full w-full object-cover" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-lg">{land.title}</h4>
-                        <Badge variant={land.status === 'Active' ? 'default' : 'secondary'} className={land.status === 'Active' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
-                          {land.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                        <MapIcon size={14} /> {land.location}
-                      </p>
-                    </div>
-                    <ChevronRight className={`transition-transform ${activeLand.id === land.id ? 'rotate-90 text-emerald-500' : 'text-slate-300'}`} />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* RIGHT: DETAIL PANE */}
-            <aside className="lg:col-span-5 sticky top-6">
-              <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white">
-                <div className="relative h-48">
-                  <img src={activeLand.image} className="w-full h-full object-cover" alt="Preview" />
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold shadow-sm">
-                    {activeLand.id}
-                  </div>
-                </div>
-                
-                <CardHeader className="pt-8">
-                  <CardTitle className="text-2xl font-black italic uppercase tracking-tight">{activeLand.title}</CardTitle>
-                </CardHeader>
-
-                <CardContent className="space-y-8 pb-10">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Area Size</p>
-                      <p className="font-bold flex items-center gap-2"><Ruler size={16} /> {activeLand.size}</p>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Valuation</p>
-                      <p className="font-bold flex items-center gap-2 text-emerald-600 font-mono italic">{activeLand.price}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Lease Holder / Owner</p>
-                    <div className="flex items-center gap-4 bg-slate-900 text-white p-4 rounded-3xl">
-                      <div className="h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center">
-                        <User size={20} />
-                      </div>
-                      <span className="font-bold text-sm uppercase tracking-wide">{activeLand.owner}</span>
-                      <ArrowUpRight size={18} className="ml-auto text-emerald-400" />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-3 pt-4">
-                    <Button className="w-full h-14 rounded-2xl bg-slate-900 text-white font-bold text-lg hover:scale-[1.02] transition-transform">
-                      View Contract
-                    </Button>
-                    <Button variant="link" className="text-slate-400 hover:text-red-500 font-bold transition-colors">
-                      Terminate Request
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </aside>
-
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-    </>
+    <span className={cn(
+      "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold",
+      cfg.color, cfg.bg
+    )}>
+      {cfg.icon}{cfg.label}
+    </span>
   )
 }
 
-function StatCard({ label, value, trend, icon }: any) {
+const JOURNEY_STEPS = ["Applied", "Accepted", "Escrow Paid", "Malpot Signed", "Active Lease"]
+
+function getJourneyStep(app: any, escrow: any): number {
+  if (!app) return -1
+  if (app.status === "PENDING")  return 0
+  if (app.status === "REJECTED") return -1
+  if (app.status === "ACCEPTED" && !escrow)                        return 1
+  if (escrow?.status === "HOLDING" && !escrow.landleaserMalpotUrl) return 2
+  if (escrow?.landleaserMalpotUrl && escrow.status === "HOLDING")  return 3
+  if (escrow?.status === "RELEASED" || app.status === "COMPLETED") return 4
+  return 1
+}
+
+function LeaseJourney({ app, escrow }: { app: any; escrow: any }) {
+  const step = getJourneyStep(app, escrow)
   return (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
+    <div className="bg-gradient-to-br from-[#073213] to-[#0f4d1a] rounded-2xl p-6 relative overflow-hidden">
+      <span className="absolute right-4 bottom-0 text-[100px] opacity-[0.06] select-none pointer-events-none">🌾</span>
+      <p className="text-[10px] font-bold tracking-widest text-emerald-400/70 uppercase mb-1">Active Lease Journey</p>
+      <p className="text-white font-extrabold text-base mb-6 truncate">
+        {app?.land?.title ?? "No active lease"}
+      </p>
+      <div className="flex items-start">
+        {JOURNEY_STEPS.map((label, i) => {
+          const done = i < step
+          const active = i === step
+          const future = i > step
+          return (
+            <div key={label} className="flex-1 flex flex-col items-center">
+              <div className="flex items-center w-full">
+                {i > 0 && <div className={cn("flex-1 h-[2px]", done ? "bg-emerald-400" : "bg-white/10")} />}
+                <div className={cn(
+                  "w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-extrabold",
+                  done   ? "bg-emerald-400 text-[#073213]" : "",
+                  active ? "bg-white text-[#073213] ring-4 ring-emerald-400/40" : "",
+                  future ? "bg-white/10 text-white/30" : "",
+                )}>
+                  {done ? "✓" : i + 1}
+                </div>
+                {i < JOURNEY_STEPS.length - 1 && <div className={cn("flex-1 h-[2px]", done ? "bg-emerald-400" : "bg-white/10")} />}
+              </div>
+              <span className={cn(
+                "text-[9px] font-semibold mt-1.5 text-center leading-tight",
+                done || active ? "text-emerald-300" : "text-white/25"
+              )}>{label}</span>
+            </div>
+          )
+        })}
+      </div>
+      {step === 1 && app && (
+        <div className="mt-5 flex items-center gap-3 bg-black/20 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <p className="text-amber-200 text-xs font-medium flex-1">Pay escrow to lock in your lease.</p>
+          <Link href={`/checkout/${app.id}`}>
+            <Button size="sm" className="bg-emerald-400 text-[#073213] font-bold text-xs h-7 rounded-lg hover:bg-emerald-300">Pay →</Button>
+          </Link>
+        </div>
+      )}
+      {step === 2 && (
+        <div className="mt-5 flex items-center gap-3 bg-black/20 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <p className="text-amber-200 text-xs font-medium flex-1">Upload your signed Malpot papers.</p>
+          <Link href={`/verify-agreement/${escrow?.id}`}>
+            <Button size="sm" className="bg-emerald-400 text-[#073213] font-bold text-xs h-7 rounded-lg hover:bg-emerald-300">Upload →</Button>
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StatCard({ label, value, sub, icon, accent }: {
+  label: string; value: string | number; sub: string; icon: React.ReactNode; accent: string
+}) {
+  return (
+    <div className="bg-white rounded-2xl p-5 border border-stone-100 shadow-sm flex flex-col gap-3">
       <div className="flex justify-between items-start">
-        <div className="p-3 bg-slate-50 rounded-2xl">{icon}</div>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{trend}</span>
+        <div className={cn("p-2 rounded-xl", accent)}>{icon}</div>
+        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">{sub}</span>
       </div>
       <div>
-        <h2 className="text-3xl font-black tracking-tight">{value}</h2>
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">{label}</p>
+        <p className="text-2xl font-black text-stone-900 tracking-tight">{value}</p>
+        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mt-0.5">{label}</p>
+      </div>
+    </div>
+  )
+}
+
+export default function LeaserDashboardPage() {
+  const { data: me }                                               = useGetMe()
+  // ✅ leaserProcedure — full land relation included
+  const { data: appsData,   isLoading: loadingApps   }            = useGetMyApplications()
+  // ✅ leaserProcedure — scoped to ctx.user.id
+  const { data: escrowData, isLoading: loadingEscrow }            = useGetMyEscrows()
+
+  const applications  = appsData?.applications  ?? []
+  const escrows       = escrowData?.escrows      ?? []
+
+  const activeLeases  = applications.filter(a => a.status === "ACCEPTED" || a.status === "COMPLETED").length
+  const pendingApps   = applications.filter(a => a.status === "PENDING").length
+  const totalReleased = escrows.filter(e => e.status === "RELEASED").reduce((s, e) => s + e.amount, 0)
+  const escrowHeld    = escrows.filter(e => e.status === "HOLDING").reduce((s, e) => s + e.amount, 0)
+
+  const activeApp    = applications.find(a => a.status === "ACCEPTED")
+  const activeEscrow = activeApp ? escrows.find(e => e.applicationId === activeApp.id) : null
+  const isLoading    = loadingApps || loadingEscrow
+
+  return (
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-stone-900 tracking-tight">
+            Welcome back{me?.name ? `, ${me.name.split(" ")[0]}` : ""}
+          </h1>
+          <p className="text-stone-400 text-sm mt-0.5">
+            {new Date().toLocaleDateString("en-NP", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        </div>
+        <Link href="/dashboard/find-land">
+          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold gap-2 shadow-sm">
+            <Search className="w-4 h-4" /> Find Land
+          </Button>
+        </Link>
+      </div>
+
+      {/* Stats */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="Active Leases"  value={activeLeases}        sub="Live"     icon={<MapPin      className="w-4 h-4 text-emerald-600" />} accent="bg-emerald-50" />
+          <StatCard label="Pending Apps"   value={pendingApps}          sub="Awaiting" icon={<Clock       className="w-4 h-4 text-amber-500"   />} accent="bg-amber-50"   />
+          <StatCard label="Total Released" value={fmtNPR(totalReleased)} sub="Paid"    icon={<TrendingUp  className="w-4 h-4 text-blue-500"    />} accent="bg-blue-50"    />
+          <StatCard label="Escrow Held"    value={fmtNPR(escrowHeld)}   sub="Secure"  icon={<ShieldCheck className="w-4 h-4 text-violet-500"  />} accent="bg-violet-50"  />
+        </div>
+      )}
+
+      {/* Journey + Recent */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2">
+          {isLoading
+            ? <Skeleton className="h-52 rounded-2xl" />
+            : <LeaseJourney app={activeApp} escrow={activeEscrow} />
+          }
+        </div>
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-extrabold text-stone-800 text-sm">Recent Applications</h2>
+            <Link href="/dashboard/my-leases" className="text-xs text-emerald-600 font-bold hover:underline flex items-center gap-0.5">
+              View all <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {isLoading ? (
+            <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
+          ) : applications.length === 0 ? (
+            <div className="py-10 text-center">
+              <FileText className="w-8 h-8 text-stone-200 mx-auto mb-2" />
+              <p className="text-stone-400 text-sm font-medium">No applications yet</p>
+              <Link href="/dashboard/find-land">
+                <Button variant="link" className="text-emerald-600 text-xs mt-1 font-bold h-auto p-0">Browse lands →</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {applications.slice(0, 4).map((app: any) => (
+                <div key={app.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-stone-100">
+                    {app.land?.heroImageUrl
+                      ? <img src={app.land.heroImageUrl} alt="" className="w-full h-full object-cover" />
+                      : <MapPin className="w-4 h-4 text-stone-300 m-3" />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-stone-800 truncate">{app.land?.title ?? "—"}</p>
+                    <p className="text-xs text-stone-400 truncate">{app.land?.location} · ₨{app.proposedMonthlyRent.toLocaleString()}/mo</p>
+                  </div>
+                  <StatusBadge status={app.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Quick links */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { href: "/dashboard/find-land", label: "Find New Land",     desc: "Browse available listings",   icon: Search,      color: "emerald" },
+          { href: "/dashboard/my-leases", label: "My Applications",   desc: "Track all your applications", icon: FileText,    color: "blue"    },
+          { href: "/dashboard/escrow",    label: "Escrow & Payments", desc: "Manage your escrow payments", icon: ShieldCheck, color: "violet"  },
+        ].map(({ href, label, desc, icon: Icon, color }) => (
+          <Link key={href} href={href} className={cn(
+            "bg-white rounded-2xl border border-stone-100 shadow-sm p-5 flex items-start gap-4",
+            "hover:border-stone-200 hover:shadow-md transition-all group"
+          )}>
+            <div className={cn("p-2.5 rounded-xl shrink-0", `bg-${color}-50`)}>
+              <Icon className={cn("w-4 h-4", `text-${color}-600`)} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-stone-800 text-sm">{label}</p>
+              <p className="text-xs text-stone-400 mt-0.5">{desc}</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-stone-300 mt-0.5 group-hover:text-stone-500 transition-colors shrink-0" />
+          </Link>
+        ))}
       </div>
     </div>
   )

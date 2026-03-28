@@ -1,12 +1,14 @@
-// FRONTEND: app/checkout/[applicationId]/page.tsx
+// FILE: app/checkout/[applicationId]/page.tsx
 'use client';
 
-import { useParams, useRouter }     from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, ShieldCheck, MapPin, Calendar, AlertCircle } from 'lucide-react';
-import { Button }  from '@/components/ui/button';
-import { Badge }   from '@/components/ui/badge';
+import { useParams, useRouter } from 'next/navigation';
+import { MapPin, Calendar, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge }  from '@/components/ui/badge';
 import { useGetMyAcceptedApplications } from '@/queryandmutation/index';
+
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 interface EsewaFormFields {
   amount:                  number;
@@ -29,10 +31,11 @@ export default function CheckoutPage() {
   const { data, isLoading } = useGetMyAcceptedApplications();
   const application = data?.applications.find((a) => a.id === applicationId);
 
-  const [fields,    setFields]    = useState<EsewaFormFields | null>(null);
-  const [esewaUrl,  setEsewaUrl]  = useState('');
-  const [preparing, setPreparing] = useState(false);
-  const [error,     setError]     = useState('');
+  const [fields,       setFields]       = useState<EsewaFormFields | null>(null);
+  const [esewaUrl,     setEsewaUrl]     = useState('');
+  const [preparing,    setPreparing]    = useState(false);
+  const [mockLoading,  setMockLoading]  = useState(false);
+  const [error,        setError]        = useState('');
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -40,7 +43,6 @@ export default function CheckoutPage() {
     if (!application) return;
     setPreparing(true);
     setError('');
-
     try {
       const totalAmount = application.proposedMonthlyRent * application.leaseDurationInMonths;
       const res = await fetch(
@@ -57,6 +59,50 @@ export default function CheckoutPage() {
       setError(e.message ?? 'Something went wrong');
     } finally {
       setPreparing(false);
+    }
+  };
+
+  // Dev bypass — skips eSewa and calls verify directly with a mock payload
+  const handleDevBypass = async () => {
+    if (!application) return;
+    setMockLoading(true);
+    setError('');
+    try {
+      const totalAmount   = application.proposedMonthlyRent * application.leaseDurationInMonths;
+      const transactionUuid = `${applicationId}-${Date.now()}`;
+
+      // Build a fake base64 payload that mimics what eSewa would send
+      const mockPayload = {
+        transaction_code:   'MOCK-' + Date.now(),
+        status:             'COMPLETE',
+        total_amount:       String(totalAmount) + '.0',
+        transaction_uuid:   transactionUuid,
+        product_code:       'EPAYTEST',
+        signed_field_names: 'transaction_code,status,total_amount,transaction_uuid,product_code,signed_field_names',
+        signature:          'MOCK_SIGNATURE_BYPASS',
+      };
+
+      // Pass mock=true so the verify route skips HMAC check
+      const res = await fetch('/api/esewa/verify', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          encodedData:   btoa(JSON.stringify(mockPayload)),
+          applicationId,
+          mock:          true,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        router.push('/checkout/esewa-success?mock=true');
+      } else {
+        setError(json.error ?? 'Mock payment failed');
+      }
+    } catch (e: any) {
+      setError(e.message ?? 'Mock payment error');
+    } finally {
+      setMockLoading(false);
     }
   };
 
@@ -110,7 +156,6 @@ export default function CheckoutPage() {
 
           <div className="p-6 space-y-5">
 
-            {/* Info */}
             <div className="flex flex-col gap-2 text-sm text-slate-500">
               <span className="flex items-center gap-2"><MapPin size={14} className="text-emerald-500" />{application.land.location}</span>
               <span className="flex items-center gap-2"><Calendar size={14} className="text-blue-500" />{application.leaseDurationInMonths} month lease</span>
@@ -147,18 +192,41 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Pay button */}
+            {/* eSewa Pay button */}
             <Button
               onClick={preparePayment}
-              disabled={preparing || !!fields}
+              disabled={preparing || !!fields || mockLoading}
               className="w-full h-14 rounded-2xl bg-[#60BB46] hover:bg-[#4da336] text-white font-bold text-base shadow-lg"
             >
               {preparing || fields ? (
-                <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Redirecting to eSewa...</>
+                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting to eSewa…</>
               ) : (
                 <>Pay {totalAmount.toLocaleString()} NPR via eSewa</>
               )}
             </Button>
+
+            {/* DEV ONLY — bypass when eSewa sandbox is down */}
+            {IS_DEV && (
+              <div className="border border-dashed border-amber-300 rounded-xl p-3 space-y-2 bg-amber-50">
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest text-center">
+                  Dev Mode — eSewa Sandbox Bypass
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={handleDevBypass}
+                  disabled={mockLoading || preparing || !!fields}
+                  className="w-full h-10 rounded-xl border-amber-300 text-amber-700 hover:bg-amber-100 font-bold text-sm"
+                >
+                  {mockLoading
+                    ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing mock…</>
+                    : '⚡ Simulate Successful Payment'
+                  }
+                </Button>
+                <p className="text-[10px] text-amber-500 text-center">
+                  Calls verify API directly. Only shown in development.
+                </p>
+              </div>
+            )}
 
             <button
               type="button"
