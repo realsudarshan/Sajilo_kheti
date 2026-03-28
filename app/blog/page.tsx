@@ -6,6 +6,7 @@ import Link              from 'next/link'
 import { PenSquare }     from 'lucide-react'
 import { Button }        from '@/components/ui/button'
 import { auth }          from '@clerk/nextjs/server'
+import { filterBlogPosts } from '@/lib/blog-filter'
 
 export const revalidate = 30
 
@@ -22,12 +23,7 @@ export default async function BlogPage({
     client.fetch(ALL_CATEGORIES_QUERY),
   ])
 
-  // Filter by category or tag
-  const filtered = posts.filter((p: any) => {
-    if (params.category) return p.category?.slug?.current === params.category
-    if (params.tag)      return p.tags?.includes(params.tag)
-    return true
-  })
+  const filtered = filterBlogPosts(posts as any[], params)
 
   // Collect all unique tags across all posts
   const allTags: string[] = Array.from(

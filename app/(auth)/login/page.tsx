@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
-const loginSchema = z.object({
+export const loginSchema = z.object({
     email: z.string().min(1, "Email is required").email("Invalid email address"),
     password: z.string().min(1, "Password is required"),
 });
