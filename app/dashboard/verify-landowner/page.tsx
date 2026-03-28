@@ -133,7 +133,7 @@ export default function VerifyLandowner() {
       const placeName = place.name || "";
       let district = "";
       if (place.address_components) {
-        const districtComp = place.address_components.find(c => 
+        const districtComp = place.address_components.find(c =>
           c.types.includes("administrative_area_level_2")
         );
         district = districtComp?.long_name.replace(" District", "") || "";
@@ -155,8 +155,8 @@ export default function VerifyLandowner() {
         startSelfieUpload([selfieFile])
       ]);
       if (!czRes || !selfieRes) throw new Error("Upload failed");
-      
-      await upgradeRequest.mutateAsync({  
+
+      await upgradeRequest.mutateAsync({
         paymentNumber: values.esewaNumber, // Sending eSewa number to backend
         citizenshipNumber: values.citizenshipno, // Sending eSewa data to backend
         documentUrl: czRes[0].ufsUrl || czRes[0].url,
@@ -181,8 +181,8 @@ export default function VerifyLandowner() {
           <CardHeader><CardTitle>Status: <Badge>{kycDetails.status}</Badge></CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-               <div><p className="text-sm text-gray-500">Name</p><p className="font-medium">{kycDetails.FullName || "N/A"}</p></div>
-               <div><p className="text-sm text-gray-500">eSewa ID</p><p className="font-medium text-emerald-600">{kycDetails.esewaNumber || "N/A"}</p></div>
+              <div><p className="text-sm text-gray-500">Name</p><p className="font-medium">{kycDetails.FullName || "N/A"}</p></div>
+              <div><p className="text-sm text-gray-500">eSewa ID</p><p className="font-medium text-emerald-600">{kycDetails.esewaNumber || "N/A"}</p></div>
             </div>
             <div><p className="text-sm text-gray-500">Address</p><p className="font-medium">{kycDetails.Adress || "N/A"}</p></div>
             <div className="grid grid-cols-2 gap-4">
@@ -228,9 +228,9 @@ export default function VerifyLandowner() {
                         types: ["geocode", "establishment"],
                       }}
                     >
-                      <Input 
-                        placeholder="Search landmark or city..." 
-                        {...field} 
+                      <Input
+                        placeholder="Search landmark or city..."
+                        {...field}
                         onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                       />
                     </Autocomplete>
