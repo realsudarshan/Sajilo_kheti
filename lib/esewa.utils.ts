@@ -14,7 +14,7 @@ export const ESEWA_CONFIG = {
  * Used when building the form fields to send to eSewa.
  * Message format: "total_amount=X,transaction_uuid=Y,product_code=Z"
  */
-export function generateEsewaSignature(params: {
+function generateEsewaSignature(params: {
   totalAmount:     number;
   transactionUuid: string;
   productCode:     string;
@@ -91,7 +91,7 @@ export function buildEsewaFormFields(params: {
   };
 }
 
-export interface EsewaFormFields {
+interface EsewaFormFields {
   amount:                  number;
   tax_amount:              number;
   total_amount:            number;
@@ -106,7 +106,7 @@ export interface EsewaFormFields {
 }
 
 // Note: total_amount is a STRING from eSewa callback (e.g. "2000.0")
-export interface EsewaCallbackPayload {
+interface EsewaCallbackPayload {
   transaction_code:    string;
   status:              string;
   total_amount:        string;   // ← STRING, not number

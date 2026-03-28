@@ -11,6 +11,7 @@ import {
 import { Button }   from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn }       from "@/lib/utils"
+import { EnablePushNotifications } from "@/components/ui/enable-push-notifications"
 
 function fmtNPR(n: number) {
   return `₨ ${n.toLocaleString("en-NP")}`
@@ -164,6 +165,8 @@ export default function LeaserDashboardPage() {
           </Button>
         </Link>
       </div>
+
+      <EnablePushNotifications />
 
       {/* Stats */}
       {isLoading ? (

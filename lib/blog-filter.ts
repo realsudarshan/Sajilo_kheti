@@ -1,5 +1,5 @@
 /** Pure filter for Sanity blog posts — no I/O, safe to unit test. */
-export type BlogPostFilterable = {
+type BlogPostFilterable = {
   category?: { slug?: { current?: string } };
   tags?: string[];
 };

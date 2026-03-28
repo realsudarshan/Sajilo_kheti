@@ -2,12 +2,13 @@ import { TRPCProvider } from "@/components/providers/query-provider";
 import { UserSync } from "@/components/user-sync";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { PostHogProvider } from '@/components/providers/PosthogProvider';
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 
@@ -30,7 +31,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="overflow-x-hidden" suppressHydrationWarning>
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
+          className={`${outfit.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
           suppressHydrationWarning
         >
           <PostHogProvider>

@@ -1,0 +1,113 @@
+[93m[4mUnused files[24m[39m (30)
+components/data-table.tsx                
+components/nav-documents.tsx             
+data/dashboardMessageBoxes.ts            
+data/lands.ts                            
+lib/api.ts                               
+sanity/env.ts                            
+sanity/structure.ts                      
+types/land.types.ts                      
+types/user.types.ts                      
+components/application/ApplicationRow.tsx
+components/blog/BlogEditor.tsx           
+components/dashboard/AvatarPic.tsx       
+components/dashboard/Belandowner.tsx     
+components/dashboard/DashboardHeader.tsx 
+components/dashboard/LandCard.tsx        
+components/dashboard/MessageBox.tsx      
+components/dashboard/Status.tsx          
+components/chat/Chatwidget.tsx           
+components/landowner/dropzone.ts         
+components/landowner/LandownerHeader.tsx 
+components/landowner/userAccountNav.tsx  
+components/lands/LeaseRequestForm.tsx    
+components/map/GoogleMapsProvider.tsx    
+components/map/LandNavigator.tsx         
+components/map/MalpotNavigator.tsx       
+components/ui/breadcrumb.tsx             
+components/ui/checkbox.tsx               
+components/ui/drawer.tsx                 
+components/ui/sonner.tsx                 
+sanity/lib/live.ts                       
+[93m[4mUnused dependencies[24m[39m (11)
+@dnd-kit/core              package.json:22:6
+@dnd-kit/modifiers         package.json:23:6
+@dnd-kit/sortable          package.json:24:6
+@dnd-kit/utilities         package.json:25:6
+@radix-ui/react-checkbox   package.json:30:6
+@tanstack/react-table      package.json:47:6
+axios                      package.json:51:6
+next-themes                package.json:58:6
+react-google-autocomplete  package.json:63:6
+tailwindcss-animate        package.json:73:6
+vaul                       package.json:76:6
+[93m[4mUnused devDependencies[24m[39m (1)
+tw-animate-css  package.json:96:6
+[93m[4mUnlisted dependencies[24m[39m (1)
+postcss  postcss.config.mjs
+[93m[4mUnused exports[24m[39m (56)
+useLands                             queryandmutation/index.ts:27:14            
+useGetApplicationById                queryandmutation/index.ts:77:14            
+usePayEscrow                         queryandmutation/index.ts:94:14            
+useVerifyMalpotPapers                queryandmutation/index.ts:95:14            
+SidebarGroupAction                   components/ui/sidebar.tsx:706:3            
+SidebarGroupLabel                    components/ui/sidebar.tsx:708:3            
+SidebarInput                         components/ui/sidebar.tsx:710:3            
+SidebarMenuAction                    components/ui/sidebar.tsx:713:3            
+SidebarMenuBadge                     components/ui/sidebar.tsx:714:3            
+SidebarMenuSkeleton                  components/ui/sidebar.tsx:717:3            
+SidebarMenuSub                       components/ui/sidebar.tsx:718:3            
+SidebarMenuSubButton                 components/ui/sidebar.tsx:719:3            
+SidebarMenuSubItem                   components/ui/sidebar.tsx:720:3            
+SidebarRail                          components/ui/sidebar.tsx:722:3            
+SidebarSeparator                     components/ui/sidebar.tsx:723:3            
+description                          components/chart-area-interactive.tsx:33:14
+POSTS_BY_CATEGORY_QUERY              sanity/lib/queries.ts:57:14                
+buttonVariants                       components/ui/button.tsx:62:18             
+TableFooter                          components/ui/table.tsx:111:3              
+TableCaption                         components/ui/table.tsx:115:3              
+badgeVariants                        components/ui/badge.tsx:46:17              
+SheetFooter                          components/ui/sheet.tsx:137:3              
+DialogClose                          components/ui/dialog.tsx:134:3             
+DialogDescription                    components/ui/dialog.tsx:136:3             
+DialogFooter                         components/ui/dialog.tsx:137:3             
+DialogOverlay                        components/ui/dialog.tsx:139:3             
+DialogPortal                         components/ui/dialog.tsx:140:3             
+DialogTrigger                        components/ui/dialog.tsx:142:3             
+DropdownMenuPortal                   components/ui/dropdown-menu.tsx:243:3      
+DropdownMenuGroup                    components/ui/dropdown-menu.tsx:246:3      
+DropdownMenuCheckboxItem             components/ui/dropdown-menu.tsx:249:3      
+DropdownMenuRadioGroup               components/ui/dropdown-menu.tsx:250:3      
+DropdownMenuRadioItem                components/ui/dropdown-menu.tsx:251:3      
+DropdownMenuShortcut                 components/ui/dropdown-menu.tsx:253:3      
+DropdownMenuSub                      components/ui/dropdown-menu.tsx:254:3      
+DropdownMenuSubTrigger               components/ui/dropdown-menu.tsx:255:3      
+DropdownMenuSubContent               components/ui/dropdown-menu.tsx:256:3      
+useFormField                         components/ui/form.tsx:159:3               
+UploadButton                         lib/useUploadthings.ts:11:14               
+UploadDropzone                       lib/useUploadthings.ts:12:14               
+uploadFiles                          lib/useUploadthings.ts:15:32               
+publishLandInputSchema               lib/zodschema/schema.ts:26:14              
+requestedLeaseInputSchema            lib/zodschema/schema.ts:57:14              
+generateEsewaSignature     function  lib/esewa.utils.ts:17:17                   
+ChartLegend                          components/ui/chart.tsx:354:3              
+ChartLegendContent                   components/ui/chart.tsx:355:3              
+ChartStyle                           components/ui/chart.tsx:356:3              
+SelectGroup                          components/ui/select.tsx:182:3             
+SelectLabel                          components/ui/select.tsx:184:3             
+SelectScrollDownButton               components/ui/select.tsx:185:3             
+SelectScrollUpButton                 components/ui/select.tsx:186:3             
+SelectSeparator                      components/ui/select.tsx:187:3             
+FileUploadItemProgress               components/ui/file-upload.tsx:1407:3       
+FileUploadClear                      components/ui/file-upload.tsx:1409:3       
+useFileUpload                        components/ui/file-upload.tsx:1411:15      
+Toggle                               components/ui/toggle.tsx:47:10             
+[93m[4mUnused exported types[24m[39m (7)
+BlogPostFilterable    type       lib/blog-filter.ts:2:13             
+LandFormData          type       lib/zodschema/schema.ts:37:13       
+LandSize              type       lib/zodschema/schema.ts:38:13       
+RequestedLeaseInput   type       lib/zodschema/schema.ts:65:13       
+EsewaFormFields       interface  lib/esewa.utils.ts:94:18            
+EsewaCallbackPayload  interface  lib/esewa.utils.ts:109:18           
+FileUploadProps       type       components/ui/file-upload.tsx:1413:8
+[33m[4mConfiguration hints[24m (1)[39m
