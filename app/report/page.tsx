@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSubmitReport } from '@/queryandmutation';
 import {
   AlertTriangle,
   Lightbulb,
@@ -138,6 +139,8 @@ export default function ReportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [charCount, setCharCount] = useState(0);
+  const submitReport = useSubmitReport();
+
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDescription(e.target.value);
@@ -154,13 +157,25 @@ export default function ReportPage() {
   };
 
   const handleSubmit = async () => {
-    if (!reportType || !subject || !description) return;
-    setSubmitting(true);
-    // Simulate API call
-    await new Promise((res) => setTimeout(res, 1800));
-    setSubmitting(false);
+  if (!reportType || !subject || !description) return;
+  setSubmitting(true);
+  try {
+    await submitReport.mutateAsync({
+      type:         reportType.toUpperCase() as any,
+      subject,
+      description,
+      priority,
+      leaseId:      leaseId || undefined,
+      contactEmail: contactEmail || undefined,
+      anonymous,
+    });
     setSubmitted(true);
-  };
+  } catch (err) {
+    alert('Failed to submit report. Please try again.');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const isValid = reportType && subject && description.length >= 30;
 

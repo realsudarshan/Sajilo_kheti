@@ -1,5 +1,4 @@
-import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
-
+import { IconTrendingUp } from "@tabler/icons-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -10,93 +9,106 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-export function SectionCards() {
+interface SectionCardsProps {
+  totalProfit: number
+  totalLeasers: number
+  totalOwners: number
+  totalTransactions: number
+}
+
+export function SectionCards({
+  totalProfit,
+  totalLeasers,
+  totalOwners,
+  totalTransactions,
+}: SectionCardsProps) {
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Total Profit</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            Rs 1,250
+            Rs {totalProfit.toLocaleString()}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +12.5%
+              Commission
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Trending up this month <IconTrendingUp className="size-4" />
+            Total escrow commission earned
           </div>
-          <div className="text-muted-foreground">
-            Profit for the last 6 months
-          </div>
+          <div className="text-muted-foreground">All time</div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Total Land Leasers</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            1,234
+            {totalLeasers.toLocaleString()}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <IconTrendingDown />
-              -20%
+              <IconTrendingUp />
+              Users
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Down 20% this period <IconTrendingDown className="size-4" />
+            Registered leasers
           </div>
-          <div className="text-muted-foreground">
-            Leaser acquisition needs attention
-          </div>
+          <div className="text-muted-foreground">All time</div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Total Land Owners</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            45,678
+            {totalOwners.toLocaleString()}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +12.5%
+              Owners
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Strong owner retention <IconTrendingUp className="size-4" />
+            KYC verified landowners
           </div>
-          <div className="text-muted-foreground">Owner engagement exceed targets</div>
+          <div className="text-muted-foreground">All time</div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Total Transactions</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            4,500
+            {totalTransactions.toLocaleString()}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +4.5%
+              Escrow
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Steady transaction increase <IconTrendingUp className="size-4" />
+            Completed escrow payments
           </div>
-          <div className="text-muted-foreground">Meets transaction projections</div>
+          <div className="text-muted-foreground">All time</div>
         </CardFooter>
       </Card>
+
     </div>
   )
 }

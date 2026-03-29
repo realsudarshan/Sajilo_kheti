@@ -151,8 +151,12 @@ export const useGetMyLeaserApplications = (input?: {
 export const useGetAllAgreementEscrowsForAdmin = () => {
     return trpc.escrow.GetAllEscrowsAgreementForAdmin.useQuery();
 };
-
-
+export function useSubmitReport() {
+  return trpc.report.submit.useMutation();
+}
+export function useGetAllLeasesAdmin(escrowStatus?: 'HOLDING' | 'RELEASED') {
+  return trpc.lease.GetAllLeasesAdmin.useQuery({ escrowStatus });
+}
 
 
 

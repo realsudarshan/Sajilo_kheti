@@ -21,7 +21,6 @@ export default function ApplicationsPage() {
   const { data: escrowData }      = useGetMyOwnerEscrows();
   const { mutate: accept, isPending: isAccepting } = useAcceptLeaseApplication();
   const { mutate: reject, isPending: isRejecting } = useRejectLeaseApplication();
-
   const applications = data?.applications ?? [];
   const escrows      = escrowData?.escrows ?? [];
 

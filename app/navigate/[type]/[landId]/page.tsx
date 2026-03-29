@@ -1,136 +1,198 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { GoogleMap, useJsApiLoader, DirectionsRenderer, MarkerF } from '@react-google-maps/api';
-import { Loader2, ArrowLeft, Navigation, MapPin, Landmark } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  GoogleMap,
+  useJsApiLoader,
+  DirectionsRenderer,
+  MarkerF,
+  Polyline,
+} from "@react-google-maps/api";
+import { Loader2, ArrowLeft, Navigation, Landmark } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useGetLandById } from "@/queryandmutation";
 
 const libraries: any = ["places"];
 
 export default function DedicatedNavigationPage() {
   const params = useParams();
   const router = useRouter();
-  const { type, landId } = params; // type is 'malpot' or 'land'
+  const type = params.type as string; // "malpot" or other
+  const landId = params.landId as string;
 
   const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-    libraries
+    libraries,
   });
 
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-  const [destinationName, setDestinationName] = useState("Loading Destination...");
-  const [landCoords, setLandCoords] = useState<{lat: number, lng: number} | null>(null);
+  const { data: land, isLoading } = useGetLandById(landId);
 
-  // 1. Fetch Land Coords (Simulated - use your query hook here)
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [directions, setDirections] = useState<any>(null);
+  const [userCoords, setUserCoords] = useState<any>(null);
+  const [landCoords, setLandCoords] = useState<any>(null);
+  const [malpotCoords, setMalpotCoords] = useState<any>(null);
+  const [loadingRoute, setLoadingRoute] = useState(true);
+  const [useStraightLine, setUseStraightLine] = useState(false);
+
+  // 1. Initialize Land Coords
   useEffect(() => {
-    // In a real app, use useGetLand(landId) here. 
-    // For now, using your provided Pokhara coords:
-    setLandCoords({ lat: 28.210415, lng: 83.984022 });
-  }, [landId]);
+    if (land?.latitude && land?.longitude) {
+      setLandCoords({
+        lat: Number(land.latitude),
+        lng: Number(land.longitude),
+      });
+    }
+  }, [land]);
 
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    if (!landCoords) return;
+  // 2. Find Nearest Malpot Office (Only if type is malpot)
+  useEffect(() => {
+    if (!isLoaded || !map || !landCoords || type !== "malpot") return;
 
-    navigator.geolocation.getCurrentPosition((position) => {
-      const origin = { lat: position.coords.latitude, lng: position.coords.longitude };
-      const directionsService = new google.maps.DirectionsService();
+    const service = new google.maps.places.PlacesService(map);
+    const request = {
+      location: landCoords,
+      radius: 50000, // Search within 50km
+      keyword: "Malpot Karyalaya Land Revenue Office",
+    };
 
-      if (type === 'malpot') {
-        const service = new google.maps.places.PlacesService(map);
-        service.nearbySearch({
-          location: landCoords,
-          radius: 15000,
-          keyword: 'Malpot Office Land Revenue'
-        }, (results, status) => {
-          if (status === 'OK' && results?.[0]) {
-            setDestinationName(results[0].name || "Malpot Office");
-            directionsService.route({
-              origin,
-              destination: results[0].geometry!.location!,
-              travelMode: google.maps.TravelMode.DRIVING,
-            }, (res, stat) => { if (stat === 'OK') setDirections(res); });
-          }
+    service.nearbySearch(request, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        setMalpotCoords({
+          lat: results[0].geometry?.location?.lat(),
+          lng: results[0].geometry?.location?.lng(),
+          name: results[0].name
         });
-      } else {
-        setDestinationName("Your Land Site");
-        directionsService.route({
-          origin,
-          destination: landCoords,
-          travelMode: google.maps.TravelMode.DRIVING,
-        }, (res, stat) => { if (stat === 'OK') setDirections(res); });
       }
     });
-  }, [landCoords, type]);
+  }, [isLoaded, map, landCoords, type]);
 
-  if (!isLoaded || !landCoords) return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-zinc-950">
-      <Loader2 className="h-10 w-10 text-emerald-500 animate-spin mb-4" />
-      <p className="text-zinc-400 font-bold animate-pulse uppercase tracking-widest text-xs">Initializing Live GPS...</p>
-    </div>
-  );
+  // 3. Routing Logic (Targets Malpot if type is malpot, else targets Land)
+  useEffect(() => {
+    if (!isLoaded || !map || !landCoords) return;
+
+    // Determine the destination
+    const destination = (type === "malpot" && malpotCoords) ? malpotCoords : landCoords;
+
+    // If we are waiting for Malpot coords to load, don't route yet
+    if (type === "malpot" && !malpotCoords) return;
+
+    setLoadingRoute(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserCoords(origin);
+
+        const directionsService = new window.google.maps.DirectionsService();
+
+        const attemptRouting = (modeIndex: number) => {
+          const modes = [
+            window.google.maps.TravelMode.DRIVING,
+            window.google.maps.TravelMode.WALKING,
+          ];
+
+          if (modeIndex >= modes.length) {
+            setUseStraightLine(true);
+            setLoadingRoute(false);
+            return;
+          }
+
+          directionsService.route(
+            {
+              origin,
+              destination,
+              travelMode: modes[modeIndex],
+            },
+            (res, stat) => {
+              if (stat === "OK") {
+                setDirections(res);
+                setUseStraightLine(false);
+                setLoadingRoute(false);
+              } else {
+                attemptRouting(modeIndex + 1);
+              }
+            }
+          );
+        };
+
+        attemptRouting(0);
+      },
+      () => setLoadingRoute(false)
+    );
+  }, [isLoaded, map, landCoords, malpotCoords, type]);
+
+  const onLoad = useCallback((mapInstance: any) => setMap(mapInstance), []);
+
+  if (!isLoaded || isLoading || !landCoords) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-black">
+        <Loader2 className="animate-spin text-white" />
+      </div>
+    );
+  }
+
+  const activeDestination = (type === "malpot" && malpotCoords) ? malpotCoords : landCoords;
 
   return (
-    <div className="h-screen w-full flex flex-col bg-zinc-950">
-      {/* Header */}
-      <div className="p-4 bg-zinc-900 border-b border-zinc-800 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-white hover:bg-zinc-800">
-            <ArrowLeft />
-          </Button>
-          <div>
-            <h1 className="text-white font-black uppercase text-sm tracking-tight leading-none">
-              {type === 'malpot' ? 'Legal Navigation' : 'Site Navigation'}
-            </h1>
-            <p className="text-emerald-500 text-[10px] font-bold uppercase mt-1">{destinationName}</p>
-          </div>
-        </div>
-        <Badge status={type} />
+    <div className="h-screen flex flex-col bg-black">
+      <div className="p-4 flex items-center gap-3 bg-zinc-900 border-b border-zinc-800">
+        <Button onClick={() => router.back()} size="icon" variant="ghost" className="text-white">
+          <ArrowLeft />
+        </Button>
+        <h1 className="text-white text-sm font-bold uppercase truncate">
+          {type === "malpot" ? "To Nearest Malpot Office" : "To Land Location"}
+        </h1>
       </div>
 
-      {/* Map */}
       <div className="flex-1 relative">
         <GoogleMap
-          mapContainerStyle={{ width: '100%', height: '100%' }}
-          center={landCoords}
-          zoom={14}
-          onLoad={onMapLoad}
-          options={{ disableDefaultUI: true, zoomControl: true, styles: mapTheme }}
+          center={activeDestination}
+          zoom={12}
+          mapContainerStyle={{ width: "100%", height: "100%" }}
+          onLoad={onLoad}
+          options={{ disableDefaultUI: true, zoomControl: true }}
         >
-          {directions && <DirectionsRenderer directions={directions} options={{ polylineOptions: { strokeColor: type === 'malpot' ? "#10b981" : "#3b82f6", strokeWeight: 6 } }} />}
-          <MarkerF position={landCoords} label="TARGET" />
+          {directions && <DirectionsRenderer directions={directions} />}
+
+          {useStraightLine && userCoords && (
+            <Polyline
+              path={[userCoords, activeDestination]}
+              options={{ strokeColor: "#ef4444", strokeOpacity: 0.8, strokeWeight: 4 }}
+            />
+          )}
+
+          {/* Markers */}
+          <MarkerF position={landCoords} label="LAND" />
+          {malpotCoords && (
+            <MarkerF
+              position={malpotCoords}
+              icon="http://googleusercontent.com/maps.google.com/mapfiles/ms/icons/blue-dot.png"
+              label="MALPOT"
+            />
+          )}
         </GoogleMap>
-      </div>
 
-      {/* Footer Drawer */}
-      <div className="p-6 bg-zinc-900 border-t border-zinc-800">
-        <div className="flex justify-between items-center gap-4">
-          <div className="space-y-1">
-            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Route Mode</p>
-            <div className="flex items-center gap-2 text-white font-bold">
-              <MapPin className={`h-4 w-4 ${type === 'malpot' ? 'text-emerald-500' : 'text-blue-500'}`} />
-              Current Location <ArrowRight className="h-3 w-3" /> {destinationName}
-            </div>
+        {type === "malpot" && malpotCoords && (
+          <div className="absolute top-4 left-4 right-4 bg-blue-600 text-white p-3 rounded-lg text-xs shadow-xl flex items-center gap-2">
+            <Landmark size={16} />
+            <span>Found: {malpotCoords.name}</span>
           </div>
-          <Button className={`${type === 'malpot' ? 'bg-emerald-600' : 'bg-blue-600'} text-white rounded-2xl px-10 h-12 font-black`} asChild>
-            <a href={`https://www.google.com/maps/dir/?api=1&destination=${landCoords.lat},${landCoords.lng}&travelmode=driving`} target="_blank">
-              OPEN GOOGLE MAPS
-            </a>
+        )}
+      </div>
+
+      <div className="p-4 bg-zinc-900 border-t border-zinc-800">
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${activeDestination.lat},${activeDestination.lng}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-bold">
+            Start Navigation
           </Button>
-        </div>
+        </a>
       </div>
     </div>
   );
 }
-
-function Badge({ status }: { status: any }) {
-  return (
-    <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${status === 'malpot' ? 'border-emerald-500 text-emerald-500 bg-emerald-500/10' : 'border-blue-500 text-blue-500 bg-blue-500/10'}`}>
-      {status === 'malpot' ? <><Landmark className="h-3 w-3 inline mr-1" /> LEGAL</> : <><Navigation className="h-3 w-3 inline mr-1" /> FIELD SITE</>}
-    </div>
-  );
-}
-
-const mapTheme: google.maps.MapTypeStyle[] = [ /* Your dark mode styles here */ ];
-function ArrowRight(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> }
