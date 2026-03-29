@@ -47,7 +47,7 @@ export async function getSectionCardData() {
     query({
       kind: 'HogQLQuery',
       query: `
-        SELECT sum(toFloatOrZero(properties.commission)) AS total_commission
+        SELECT sum(toFloatOrZero(toString(properties.commission))) AS total_commission
         FROM events
         WHERE event = 'escrow_paid'
       `,
@@ -101,16 +101,27 @@ export async function getSectionCardData() {
 
 // ── Weekly Leases (shared) ───────────────────────────────────────────────────
 export async function getWeeklyLeases() {
-  return query({
-    kind: 'TrendsQuery',
-    dateRange: { date_from: '-12w' },
-    interval: 'week',
-    series: [{
-      kind: 'EventsNode',
-      event: 'lease_completed',
-      math: 'total',
-    }],
+  const res = await query({
+    kind: 'HogQLQuery',
+    query: `
+      SELECT
+        formatDateTime(toStartOfWeek(timestamp), '%Y-%m-%d') AS week_start,
+        count() AS leases
+      FROM events
+      WHERE event = 'lease_completed'
+        AND timestamp >= now() - INTERVAL 12 WEEK
+      GROUP BY week_start
+      ORDER BY week_start ASC
+    `,
   });
+
+  if (!res?.results) return null;
+
+  const days = res.results.map((row: any[]) => row?.[0]);
+  const data = res.results.map((row: any[]) => Number(row?.[1]) || 0);
+
+  // Match the structure expected by ChartAreaInteractive (results[0].days/data)
+  return { results: [{ days, data }] };
 }
 
 // ── Analytics Dashboard ──────────────────────────────────────────────────────
