@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { IconHome, type Icon } from "@tabler/icons-react"
 
 import {
@@ -20,12 +21,22 @@ export function NavMain({
     icon?: Icon
   }[]
 }) {
+  const pathname = usePathname()
+
+  const isActive = (url: string) => {
+    if (!pathname) return false
+    if (url === "/admin") {
+      return pathname === "/admin"
+    }
+    return pathname === url || pathname.startsWith(`${url}/`)
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Home">
+            <SidebarMenuButton asChild tooltip="Home" isActive={isActive("/admin")}>
               <Link href="/admin">
                 <IconHome />
                 <span>Home</span>
@@ -36,7 +47,11 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                isActive={isActive(item.url)}
+              >
                 <Link href={item.url}>
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
