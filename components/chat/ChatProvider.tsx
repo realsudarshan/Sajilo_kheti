@@ -32,8 +32,8 @@ interface ChatProviderProps {
 }
 
 export function ChatProvider({ role, openChannelId }: ChatProviderProps) {
-  const ownerQuery  = useGetMyOwnerEscrows();
-  const leaserQuery = useGetMyEscrows();
+  const ownerQuery  = useGetMyOwnerEscrows({ enabled: role === "owner" });
+  const leaserQuery = useGetMyEscrows({ enabled: role === "leaser" });
 
   const escrows = role === "owner"
     ? (ownerQuery.data?.escrows  ?? [])

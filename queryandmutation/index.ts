@@ -86,8 +86,11 @@ export const useGetMyAcceptedApplications = (filters: {
     return trpc.lease.GetMyAcceptedApplications.useQuery(filters);
 };
 //===========================================================================
-export const useGetMyEscrows = () => trpc.escrow.GetMyEscrows.useQuery({});
-export const useGetMyOwnerEscrows = () => trpc.escrow.GetMyOwnerEscrows.useQuery({});
+export const useGetMyEscrows = (options?: { enabled?: boolean }) =>
+  trpc.escrow.GetMyEscrows.useQuery({}, { enabled: options?.enabled ?? true });
+export const useGetMyOwnerEscrows = (options?: { enabled?: boolean }) =>
+  trpc.escrow.GetMyOwnerEscrows.useQuery({}, { enabled: options?.enabled ?? true });
+
 
 export const useGetEscrowById = (id: string) => {
   return trpc.escrow.GetEscrowById.useQuery(
