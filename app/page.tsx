@@ -7,8 +7,12 @@ import { NewsletterSection } from "@/components/landing/NewsletterSection"
 import { SiteFooter } from "@/components/landing/SiteFooter"
 import { SiteHeader } from "@/components/landing/SiteHeader"
 import { SuccessStories } from "@/components/landing/SuccessStories"
+import { ChartAreaInteractive } from "@/components/chart-area-interactive"
+import { getWeeklyLeases } from "./admin/analytics/posthog.server"
 
-export default function Home() {
+export default async function Home() {
+  const weeklyLeases = await getWeeklyLeases()
+
   return (
     <div className="flex min-h-screen flex-col font-sans">
       <SiteHeader />
@@ -17,6 +21,9 @@ export default function Home() {
         <HowItWorks />
         <BenefitsSection />
         <SuccessStories />
+        <div className="container mx-auto px-4 lg:px-6 py-12">
+          <ChartAreaInteractive weeklyLeases={weeklyLeases} />
+        </div>
         <ELearningPreview />
         <FAQSection />
         <NewsletterSection />

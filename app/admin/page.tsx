@@ -1,20 +1,19 @@
-import { SectionCards } from "@/components/section-cards"
+// app/admin/page.tsx
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { getAnalyticsData } from "./analytics/posthog.server"
+import { SectionCards } from "@/components/section-cards"
+import { getSectionCardData, getWeeklyLeases } from "./analytics/posthog.server"
 
 export default async function Page() {
-  const data = await getAnalyticsData()
+  const [stats, weeklyLeases] = await Promise.all([
+    getSectionCardData(),
+    getWeeklyLeases(),
+  ])
 
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <SectionCards
-        totalProfit={data.totalProfit}
-        totalLeasers={data.totalLeasers}
-        totalOwners={data.totalOwners}
-        totalTransactions={data.totalTransactions}
-      />
+      <SectionCards stats={stats} />
       <div className="px-4 lg:px-6">
-        <ChartAreaInteractive weeklyLeases={data.weeklyLeases} />
+        <ChartAreaInteractive weeklyLeases={weeklyLeases} />
       </div>
     </div>
   )

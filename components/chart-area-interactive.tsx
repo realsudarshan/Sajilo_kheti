@@ -24,7 +24,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface Props {
-  weeklyLeases: any
+  weeklyLeases?: any
 }
 
 export function ChartAreaInteractive({ weeklyLeases }: Props) {

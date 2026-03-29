@@ -1,3 +1,4 @@
+// app/admin/analytics/posthog.server.ts
 const BASE = 'https://us.posthog.com';
 const HEADERS = {
   Authorization: `Bearer ${process.env.POSTHOG_PERSONAL_API_KEY}`,
@@ -10,11 +11,110 @@ async function query(insight: object) {
     method: 'POST',
     headers: HEADERS,
     body: JSON.stringify({ query: insight }),
-    next: { revalidate: 300 },
+    cache: 'no-store',
   });
-  return res.json();
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`[PostHog] Query failed [${res.status}]:`, err);
+    return null;
+  }
+
+  const json = await res.json();
+
+  if (json?.error || json?.detail) {
+    console.error(`[PostHog] Query error:`, json.error ?? json.detail);
+    return null;
+  }
+
+  return json;
 }
 
+const safe = (r: PromiseSettledResult<any>) =>
+  r.status === 'fulfilled' ? r.value : null;
+
+// ── Section Cards ────────────────────────────────────────────────────────────
+// Used by app/admin/page.tsx — all-time counts from PostHog events
+export async function getSectionCardData() {
+  const [
+    commissionRes,
+    leasersRes,
+    ownersRes,
+    transactionsRes,
+  ] = await Promise.allSettled([
+
+    // Total profit = sum of commission property on escrow_paid
+    query({
+      kind: 'HogQLQuery',
+      query: `
+        SELECT sum(toFloatOrZero(properties.commission)) AS total_commission
+        FROM events
+        WHERE event = 'escrow_paid'
+      `,
+    }),
+
+    // Total leasers = users who registered (user_created fires on signup)
+    query({
+      kind: 'HogQLQuery',
+      query: `
+        SELECT count() AS total_leasers
+        FROM events
+        WHERE event = 'user_created'
+      `,
+    }),
+
+    // Total land owners = KYC approvals
+    query({
+      kind: 'HogQLQuery',
+      query: `
+        SELECT count() AS total_owners
+        FROM events
+        WHERE event = 'kyc_reviewed'
+          AND properties.status = 'APPROVED'
+      `,
+    }),
+
+    // Total transactions = escrow payments
+    query({
+      kind: 'HogQLQuery',
+      query: `
+        SELECT count() AS total_transactions
+        FROM events
+        WHERE event = 'escrow_paid'
+      `,
+    }),
+  ]);
+
+  // HogQLQuery returns: { results: [[value]] }
+  const commission   = safe(commissionRes)?.results?.[0]?.[0] ?? 0;
+  const leasers      = safe(leasersRes)?.results?.[0]?.[0] ?? 0;
+  const owners       = safe(ownersRes)?.results?.[0]?.[0] ?? 0;
+  const transactions = safe(transactionsRes)?.results?.[0]?.[0] ?? 0;
+
+  return {
+    totalProfit:       Number(commission),
+    totalLeasers:      Number(leasers),
+    totalOwners:       Number(owners),
+    totalTransactions: Number(transactions),
+  };
+}
+
+// ── Weekly Leases (shared) ───────────────────────────────────────────────────
+export async function getWeeklyLeases() {
+  return query({
+    kind: 'TrendsQuery',
+    dateRange: { date_from: '-12w' },
+    interval: 'week',
+    series: [{
+      kind: 'EventsNode',
+      event: 'lease_completed',
+      math: 'total',
+    }],
+  });
+}
+
+// ── Analytics Dashboard ──────────────────────────────────────────────────────
+// Used by app/admin/analytics/page.tsx
 export async function getAnalyticsData() {
   const [
     funnelRes,
@@ -23,115 +123,90 @@ export async function getAnalyticsData() {
     kycConversionRes,
     topLocationsRes,
     weeklyLeasesRes,
-    totalCommissionRes,
-    totalLeasersRes,
-    totalOwnersRes,
-    totalTransactionsRes,
   ] = await Promise.allSettled([
-    // ── existing ────────────────────────────────────────────
+
     query({
-      kind: 'FunnelQuery',
+      kind: 'FunnelsQuery',
+      dateRange: { date_from: '-30d' },
       series: [
-        { event: 'land_published' },
-        { event: 'land_verified' },
-        { event: 'application_submitted' },
-        { event: 'application_accepted' },
-        { event: 'escrow_paid' },
-        { event: 'lease_completed' },
+        { kind: 'EventsNode', event: 'land_published' },
+        { kind: 'EventsNode', event: 'land_verified' },
+        { kind: 'EventsNode', event: 'application_submitted' },
+        { kind: 'EventsNode', event: 'application_accepted' },
+        { kind: 'EventsNode', event: 'escrow_paid' },
+        { kind: 'EventsNode', event: 'lease_completed' },
       ],
-      dateRange: { date_from: '-30d' },
-    }),
-    query({
-      kind: 'TrendsQuery',
-      series: [{ event: 'escrow_paid', math: 'sum', math_property: 'amount' }],
-      dateRange: { date_from: '-30d' },
-      interval: 'week',
-    }),
-    query({
-      kind: 'TrendsQuery',
-      series: [{ event: 'escrow_paid', math: 'sum', math_property: 'commission' }],
-      dateRange: { date_from: '-30d' },
-      interval: 'week',
-    }),
-    query({
-      kind: 'FunnelQuery',
-      series: [
-        { event: 'kyc_submitted' },
-        { event: 'kyc_reviewed', properties: [{ key: 'status', value: 'APPROVED' }] },
-      ],
-      dateRange: { date_from: '-90d' },
-    }),
-    query({
-      kind: 'EventsQuery',
-      select: ['properties.location', 'count()'],
-      event: 'land_searched',
-      groupBy: ['properties.location'],
-      orderBy: ['-count()'],
-      limit: 5,
-      dateRange: { date_from: '-30d' },
-    }),
-    query({
-      kind: 'TrendsQuery',
-      series: [{ event: 'lease_completed', math: 'total' }],
-      dateRange: { date_from: '-12w' },
-      interval: 'week',
     }),
 
-    // ── new: SectionCards + ChartAreaInteractive ─────────────
     query({
       kind: 'TrendsQuery',
-      series: [{ event: 'escrow_paid', math: 'sum', math_property: 'commission' }],
-      dateRange: { date_from: 'all' },
-      interval: 'month',
+      dateRange: { date_from: '-30d' },
+      interval: 'week',
+      series: [{
+        kind: 'EventsNode',
+        event: 'escrow_paid',
+        math: 'sum',
+        math_property: 'amount',
+      }],
     }),
+
     query({
-      kind: 'EventsQuery',
-      select: ['count()'],
-      event: 'user_created',
-      where: ["properties.role = 'LEASER'"],
-      dateRange: { date_from: 'all' },
+      kind: 'TrendsQuery',
+      dateRange: { date_from: '-30d' },
+      interval: 'week',
+      series: [{
+        kind: 'EventsNode',
+        event: 'escrow_paid',
+        math: 'sum',
+        math_property: 'commission',
+      }],
     }),
+
     query({
-      kind: 'EventsQuery',
-      select: ['count()'],
-      event: 'user_created',
-      where: ["properties.role = 'OWNER'"],
-      dateRange: { date_from: 'all' },
+      kind: 'FunnelsQuery',
+      dateRange: { date_from: '-90d' },
+      series: [
+        { kind: 'EventsNode', event: 'kyc_submitted' },
+        {
+          kind: 'EventsNode',
+          event: 'kyc_reviewed',
+          properties: [{
+            key: 'status',
+            value: 'APPROVED',
+            operator: 'exact',
+            type: 'event',
+          }],
+        },
+      ],
     }),
+
     query({
-      kind: 'EventsQuery',
-      select: ['count()'],
-      event: 'escrow_paid',
-      dateRange: { date_from: 'all' },
+      kind: 'HogQLQuery',
+      query: `
+        SELECT
+          properties.location AS location,
+          count() AS searches
+        FROM events
+        WHERE
+          event = 'land_searched'
+          AND timestamp >= now() - INTERVAL 30 DAY
+          AND properties.location IS NOT NULL
+          AND properties.location != ''
+        GROUP BY location
+        ORDER BY searches DESC
+        LIMIT 5
+      `,
     }),
+
+    getWeeklyLeases(),
   ]);
 
-  const safe = (r: PromiseSettledResult<any>) =>
-    r.status === 'fulfilled' ? r.value : null;
-
-  const sumTrend = (res: any): number => {
-    try {
-      return (res?.results?.[0]?.data ?? []).reduce(
-        (acc: number, v: number) => acc + (v ?? 0), 0
-      );
-    } catch { return 0; }
-  };
-
-  const countEvents = (res: any): number => {
-    try { return res?.results?.[0]?.[0] ?? 0; }
-    catch { return 0; }
-  };
-
   return {
-    funnel: safe(funnelRes),
-    escrowVolume: safe(escrowVolumeRes),
-    commission: safe(commissionRes),
+    funnel:        safe(funnelRes),
+    escrowVolume:  safe(escrowVolumeRes),
+    commission:    safe(commissionRes),
     kycConversion: safe(kycConversionRes),
-    topLocations: safe(topLocationsRes),
-    weeklyLeases: safe(weeklyLeasesRes),
-    totalProfit: sumTrend(safe(totalCommissionRes)),
-    totalLeasers: countEvents(safe(totalLeasersRes)),
-    totalOwners: countEvents(safe(totalOwnersRes)),
-    totalTransactions: countEvents(safe(totalTransactionsRes)),
+    topLocations:  safe(topLocationsRes),
+    weeklyLeases:  safe(weeklyLeasesRes),
   };
 }

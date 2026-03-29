@@ -18,6 +18,12 @@ vi.mock("@/queryandmutation", () => ({
   useGetMyEscrows: vi.fn(),
 }));
 
+// The page renders EnablePushNotifications which depends on a tRPC provider.
+// In tests we stub it out to avoid the context requirement.
+vi.mock("@/components/ui/enable-push-notifications", () => ({
+  EnablePushNotifications: () => null,
+}));
+
 import { useGetMe, useGetMyApplications, useGetMyEscrows } from "@/queryandmutation";
 
 describe("LeaserDashboardPage", () => {

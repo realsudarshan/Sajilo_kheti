@@ -42,45 +42,56 @@ function EmptyState({ message }: { message: string }) {
 }
 
 export function AnalyticsDashboard({ data }: { data: any }) {
-  const funnelSteps  = data.funnel?.result?.[0] ?? [];
-  const funnelData   = funnelSteps.map((step: any) => ({
-    name:  step.name?.replace(/_/g, ' '),
+
+  // ── FUNNEL ──────────────────────────────────────────────────────────
+  // Shape: results: [] (empty until events fire) OR results: [[step1, step2, ...]]
+  // When non-empty it's an array of arrays — take the first row
+  const funnelRows: any[] = data.funnel?.results ?? [];
+  const funnelSteps: any[] = Array.isArray(funnelRows[0]) ? funnelRows[0] : funnelRows;
+  const funnelData = funnelSteps.map((step: any) => ({
+    name:  (step.name ?? step.action_id ?? '').replace(/_/g, ' '),
     count: step.count ?? 0,
   }));
 
-  const volumeData = (data.escrowVolume?.results?.[0]?.data ?? []).map(
-    (v: number, i: number) => ({
-      week:   data.escrowVolume?.results?.[0]?.labels?.[i] ?? `W${i + 1}`,
-      amount: Math.round(v),
-    })
-  );
+  // ── TRENDS (escrow volume, commission, weekly leases) ────────────────
+  // Shape: results: [{ data: number[], labels: string[], ... }]
+  const volumeSeries    = data.escrowVolume?.results?.[0];
+  const commissionSeries = data.commission?.results?.[0];
+  const leaseSeries     = data.weeklyLeases?.results?.[0];
 
-  const commissionData = (data.commission?.results?.[0]?.data ?? []).map(
-    (v: number, i: number) => ({
-      week:       data.commission?.results?.[0]?.labels?.[i] ?? `W${i + 1}`,
-      commission: Math.round(v),
-    })
-  );
+  const volumeData = (volumeSeries?.data ?? []).map((v: number, i: number) => ({
+    week:   volumeSeries?.labels?.[i] ?? `W${i + 1}`,
+    amount: Math.round(v),
+  }));
 
-  const kycSteps     = data.kycConversion?.result?.[0] ?? [];
+  const commissionData = (commissionSeries?.data ?? []).map((v: number, i: number) => ({
+    week:       commissionSeries?.labels?.[i] ?? `W${i + 1}`,
+    commission: Math.round(v),
+  }));
+
+  const weeklyLeasesData = (leaseSeries?.data ?? []).map((v: number, i: number) => ({
+    week:   leaseSeries?.labels?.[i] ?? `W${i + 1}`,
+    leases: v,
+  }));
+
+  // ── KYC FUNNEL ──────────────────────────────────────────────────────
+  // Shape: results: [{ name: 'kyc_submitted', count: 1 }, { name: 'kyc_reviewed', count: 1 }]
+  // It's a FLAT array of step objects (confirmed from logs)
+  const kycSteps: any[] = data.kycConversion?.results ?? [];
   const kycSubmitted = kycSteps[0]?.count ?? 0;
   const kycApproved  = kycSteps[1]?.count ?? 0;
   const kycRate      = kycSubmitted > 0
     ? Math.round((kycApproved / kycSubmitted) * 100)
     : 0;
 
+  // ── TOP LOCATIONS ────────────────────────────────────────────────────
+  // Shape: results: [[location, count], ...] (HogQLQuery row format)
   const locationData = (data.topLocations?.results ?? []).map((row: any[]) => ({
     location: row[0] ?? 'Unknown',
     searches: row[1] ?? 0,
   }));
 
-  const weeklyLeasesData = (data.weeklyLeases?.results?.[0]?.data ?? []).map(
-    (v: number, i: number) => ({
-      week:   data.weeklyLeases?.results?.[0]?.labels?.[i] ?? `W${i + 1}`,
-      leases: v,
-    })
-  );
-
+  // ── TOTALS ───────────────────────────────────────────────────────────
   const totalVolume     = volumeData.reduce((s: number, d: any) => s + d.amount, 0);
   const totalCommission = commissionData.reduce((s: number, d: any) => s + d.commission, 0);
   const totalLeases     = weeklyLeasesData.reduce((s: number, d: any) => s + d.leases, 0);
@@ -124,7 +135,7 @@ export function AnalyticsDashboard({ data }: { data: any }) {
       <div className="bg-white rounded-2xl border p-6">
         <SectionHeader title="Conversion Funnel" sub="Land listed → Lease completed (30d)" />
         {funnelData.length === 0
-          ? <EmptyState message="No funnel data yet — events are still accumulating." />
+          ? <EmptyState message="No funnel data yet — fire some land_published / application_submitted events first." />
           : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={funnelData} layout="vertical" margin={{ left: 20, right: 40 }}>
@@ -132,7 +143,7 @@ export function AnalyticsDashboard({ data }: { data: any }) {
                 <YAxis
                   dataKey="name"
                   type="category"
-                  width={180}
+                  width={200}
                   tick={{ fontSize: 12, fontWeight: 700 }}
                 />
                 <Tooltip
@@ -154,8 +165,8 @@ export function AnalyticsDashboard({ data }: { data: any }) {
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border p-6">
           <SectionHeader title="Escrow Volume" sub="Weekly totals (Rs)" />
-          {volumeData.length === 0
-            ? <EmptyState message="No escrow data yet." />
+          {volumeData.every((d: any) => d.amount === 0)
+            ? <EmptyState message="No escrow payments yet." />
             : (
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={volumeData}>
@@ -170,8 +181,8 @@ export function AnalyticsDashboard({ data }: { data: any }) {
 
         <div className="bg-white rounded-2xl border p-6">
           <SectionHeader title="Commission Earned" sub="Weekly totals (Rs)" />
-          {commissionData.length === 0
-            ? <EmptyState message="No commission data yet." />
+          {commissionData.every((d: any) => d.commission === 0)
+            ? <EmptyState message="No commission earned yet." />
             : (
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={commissionData}>
@@ -189,8 +200,8 @@ export function AnalyticsDashboard({ data }: { data: any }) {
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border p-6">
           <SectionHeader title="Leases Completed" sub="Weekly (last 12 weeks)" />
-          {weeklyLeasesData.length === 0
-            ? <EmptyState message="No lease data yet." />
+          {weeklyLeasesData.every((d: any) => d.leases === 0)
+            ? <EmptyState message="No leases completed yet." />
             : (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={weeklyLeasesData}>
@@ -206,7 +217,7 @@ export function AnalyticsDashboard({ data }: { data: any }) {
         <div className="bg-white rounded-2xl border p-6">
           <SectionHeader title="Top Searched Locations" sub="Last 30 days" />
           {locationData.length === 0
-            ? <EmptyState message="No search data yet." />
+            ? <EmptyState message="No land_searched events yet." />
             : (
               <div className="space-y-3 mt-2">
                 {locationData.map((loc: any, i: number) => (
@@ -225,7 +236,7 @@ export function AnalyticsDashboard({ data }: { data: any }) {
 
       {/* KYC Panel */}
       <div className="bg-white rounded-2xl border p-6">
-        <SectionHeader title="KYC Analytics" sub="All time" />
+        <SectionHeader title="KYC Analytics" sub="Last 90 days" />
         <div className="grid grid-cols-3 gap-6 mt-2 text-center">
           <div>
             <p className="text-3xl font-black text-slate-900">{kycSubmitted}</p>
