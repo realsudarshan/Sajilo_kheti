@@ -13,6 +13,7 @@ import {
   IconSettings,
   IconUserCheck,
   IconUsers,
+  IconActivity,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -81,6 +82,10 @@ const data = {
      url:"/admin/analytics",
      icon: IconMap,
     },
+    {title:"Events",
+     url:"/admin/events",
+     icon: IconActivity,
+    },
     {title:"Send mail",
      url:"/admin/mail",
      icon: Mail,
@@ -89,12 +94,12 @@ const data = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/admin/settings",
       icon: IconSettings,
     },
     {
       title: "Get Help",
-      url: "#",
+      url: "/admin/help",
       icon: IconHelp,
     },
     {

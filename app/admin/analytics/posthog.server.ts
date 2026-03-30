@@ -124,6 +124,28 @@ export async function getWeeklyLeases() {
   return { results: [{ days, data }] };
 }
 
+// ── Event Counts (all events) ───────────────────────────────────────────────
+export async function getEventCounts() {
+  const res = await query({
+    kind: 'HogQLQuery',
+    query: `
+      SELECT
+        event,
+        count() AS total
+      FROM events
+      GROUP BY event
+      ORDER BY total DESC
+    `,
+  });
+
+  if (!res?.results) return [];
+
+  return res.results.map((row: any[]) => ({
+    event: String(row?.[0] ?? ''),
+    total: Number(row?.[1] ?? 0),
+  }));
+}
+
 // ── Analytics Dashboard ──────────────────────────────────────────────────────
 // Used by app/admin/analytics/page.tsx
 export async function getAnalyticsData() {
