@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sajilo Kheti — Frontend
+
+A Next.js web client for **Sajilo Kheti**, a MERN-based land leasing and farming education platform that connects landowners with land leasers in Nepal through structured listings, proposals, escrow-backed payments, real-time chat, and an agricultural education blog.
+
+## Overview
+
+The frontend provides three role-specific dashboards — **Land Owner**, **Land Leaser**, and **Admin** — all routed through a centralized tRPC client that talks to the backend over authenticated HTTP requests using Clerk-issued JWTs.
+
+| Role | Capabilities |
+|---|---|
+| Land Owner | Create/manage land listings, review lease applications, upload Malpot verification documents, receive escrow payouts |
+| Land Leaser | Search/filter listings, submit lease proposals, chat with owners, initiate escrow payments, access farming education content |
+| Admin | Manage users, verify KYC, approve/reject listings, monitor transactions, moderate blog content |
+
+## Tech Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Framework | Next.js 15+ | SSR + client-side React architecture |
+| Styling | Tailwind CSS v4 | Utility-first responsive UI |
+| Components | Shadcn/UI & Radix | Accessible, reusable UI primitives |
+| API Layer | tRPC (client) | Type-safe communication with the backend |
+| Auth | Clerk | Authentication, sessions, role-based access |
+| Validation | Zod | Runtime schema validation |
+| File Uploads | UploadThing | Land images & legal document uploads |
+| Real-time Chat | Stream.io (GetStream) | Owner–leaser messaging per lease |
+| Maps | Google Maps API | Land location display, navigation, nearest Malpot office lookup |
+| Payments | eSewa | Escrow payment initiation/confirmation UI |
+| Blog CMS | Sanity.io | Agricultural education content |
+| OCR (client-assist) | Tesseract.js | Assists document field extraction during KYC upload |
+
+## Key Features
+
+- Role-based dashboards (Owner / Leaser / Admin) with route protection via Clerk
+- Land listing creation with map-based location picker and multi-image upload
+- Search & filter (region, rent range, land area)
+- Lease proposal submission and review flow
+- Interactive map view for listings + nearest Malpot Karyalaya navigation
+- Real-time lease chat, activated only after proposal acceptance
+- eSewa escrow payment flow with status tracking (Holding → Released/Refunded)
+- Malpot document upload for legal verification
+- Community blog: post creation, categorization/tagging, upvotes, comments
+- Admin panel: user/KYC management, land approvals, revenue and transaction metrics
+
+## Project Structure (typical Next.js App Router layout)
+
+```
+frontend/
+├── app/
+│   ├── (auth)/                # Clerk sign-in/sign-up routes
+│   ├── (owner)/                # Owner dashboard, listings, applications
+│   ├── (leaser)/                # Explore lands, applications, chat
+│   ├── (admin)/                # Admin panel
+│   ├── blog/                    # Sanity-powered blog routes
+│   └── api/                     # Route handlers (uploads, webhooks)
+├── components/
+│   ├── ui/                      # Shadcn/Radix components
+│   └── ...                      # Feature components (PostCard, ApplicationCard, etc.)
+├── lib/
+│   ├── trpc/                    # tRPC client setup
+│   ├── clerk/                   # Auth helpers
+│   └── validators/              # Zod schemas
+├── public/
+└── ...
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- pnpm / npm / yarn
+- Access to the running backend (Express + tRPC) instance
+- Clerk, UploadThing, Stream.io, Sanity, Google Maps, and eSewa API credentials
+
+### Installation
+
+```bash
+git clone <repo-url>
+cd frontend
+npm install
+```
+
+### Environment Variables
+
+Create a `.env.local` file:
+
+```env
+NEXT_PUBLIC_API_URL=              # Backend tRPC endpoint
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+UPLOADTHING_TOKEN=
+NEXT_PUBLIC_STREAM_API_KEY=
+NEXT_PUBLIC_SANITY_PROJECT_ID=
+NEXT_PUBLIC_SANITY_DATASET=
+NEXT_PUBLIC_ESEWA_MERCHANT_CODE=
+```
+
+### Run Locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App will be available at `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build & Start (Production)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
+## Testing
 
-To learn more about Next.js, take a look at the following resources:
+- **Vitest** + **React Testing Library** for unit/component tests (e.g., `PostCard`, `ApplicationCard`, dashboard rendering)
+- **Playwright** for end-to-end flows (auth, land search, proposal submission, lease chat activation)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run test        # unit/component tests
+npm run test:e2e     # Playwright E2E suite
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notes
 
-## Deploy on Vercel
+- All dashboard data calls go through the shared tRPC client — do not call REST endpoints directly.
+- Role-based UI gating should mirror the backend's role checks; treat frontend gating as UX-only, not a security boundary.
+- Chat UI only mounts after a lease application is accepted (see `leaseRouter.accept-application` on the backend).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Part of the Sajilo Kheti minor project (NCE, Department of Electronics & Computer Engineering, Tribhuvan University — Pawan Thapa, Rohit Khanal, Sudarshan Dhakal, Tilak Rokaya, 2026).*
